@@ -1,0 +1,35 @@
+{
+  "name": "harvesting-utils",
+  "version": "1.0.0",
+  "description": "Utils library for harvesting RPDE feeds",
+  "main": "index.js",
+  "scripts": {
+    "test": "eslint && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openactive/harvesting-utils.git"
+  },
+  "keywords": [
+    "RPDE",
+    "harvesting",
+    "crawler"
+  ],
+  "author": "Civ Sivakumaran",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/openactive/harvesting-utils/issues"
+  },
+  "homepage": "https://github.com/openactive/harvesting-utils#readme",
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1"
+  },
+  "dependencies": {
+    "@openactive/rpde-validator": "^2.0.19",
+    "axios": "^1.6.7",
+    "typescript": "^5.3.3"
+  }
+}
