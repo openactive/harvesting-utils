@@ -20,7 +20,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
 
 /**
  * @param {object} args
- * @param {string} args.baseUrl
+ * @param {string} args.baseUrl TODO: rename to feedUrl
  * @param {string} args.feedContextIdentifier
  * @param {() => Promise<Object.<string, string>>} args.headers
  * @param {RpdePageProcessor} args.processPage
@@ -29,7 +29,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
  * @param {boolean} args.isOrdersFeed
  *
  * @param {object} [args.state]
- * @param {FeedContext} [args.state.context]
+ * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
  * @param {string[]} args.state.incompleteFeeds
  * @param {Date} args.state.startTime
@@ -64,7 +64,7 @@ async function harvestRPDE({
     log: console.log, logError: console.error, logErrorDuringHarvest: console.error,
   },
   config: { WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
-    WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: 'primary', REQUEST_LOGGING_ENABLED: false,
+    WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
 }) {

@@ -6,7 +6,7 @@
  * @param {import('cli-progress').MultiBar} [multibar]
  * @returns {FeedContext}
  */
-function createFeedContext(feedContextIdentifier, baseUrl, multibar) {
+function createFeedContext(feedContextIdentifier, baseUrl, multibar = null) {
   /** @type {FeedContext} */
   const context = {
     currentPage: baseUrl,
