@@ -18,6 +18,11 @@ function run() {
     process.exit(0);
   };
 
+  const onError = () => {
+    console.log('Error occurred');
+    process.exit(1);
+  };
+
   // This is the function which will be called to get the headers for the RPDE feed
   const headers = async () => ({});
 
@@ -31,6 +36,7 @@ function run() {
     headers,
     processPage,
     onFeedEnd,
+    onError,
     isOrdersFeed,
   });
 }

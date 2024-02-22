@@ -1,6 +1,6 @@
 # Examples
 
-`harvestRPDE()` has many configuration options, different state variables that can be passed in, optional features that can be enabled, and differening logging functions that can be supplied. However, at its simplest it only needs a few parameters passed in to run.
+`harvestRPDE()` has many configuration options, different state variables that can be passed in, optional features that can be enabled, and different logging functions that can be supplied. However, at its simplest it only needs a few parameters passed in to run.
 
 ## simple-rpde-harvester
 This example RPDE harvester demonstrates the bare minimum needed to implement `harvestRPDE()`. 

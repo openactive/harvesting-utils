@@ -7,16 +7,16 @@ const { createFeedContext, progressFromContext } = require('./feed-context-utils
 const { millisToMinutesAndSeconds } = require('./utils');
 
 /**
- * @typedef {import('../src/models/core').FeedContext} FeedContext
- */
-
-/**
  * @typedef {(
 *   rpdePage: any,
 *   feedIdentifier: string,
 *   isInitialHarvestComplete: () => boolean,
 * ) => Promise<void>} RpdePageProcessor
 */
+
+/**
+ * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ */
 
 /**
  * @param {object} args
@@ -26,7 +26,12 @@ const { millisToMinutesAndSeconds } = require('./utils');
  * @param {RpdePageProcessor} args.processPage
  * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
  *   reached its end - when all items have been harvested.
+ * @param {() => Promise<void>} args.onError
  * @param {boolean} args.isOrdersFeed
+ *
+ * The following parameters are optional, and are currently very openactive-broker-microservice specific.
+ * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
+ * https://github.com/openactive/harvesting-utils/pull/1/files#r1499134370
  *
  * @param {object} [args.state]
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
@@ -56,6 +61,7 @@ async function harvestRPDE({
   headers,
   processPage,
   onFeedEnd,
+  onError,
   isOrdersFeed,
   state: { context, feedContextMap, startTime, incompleteFeeds } = {
     context: null, feedContextMap: new Map(), startTime: new Date(), incompleteFeeds: [],
@@ -113,7 +119,7 @@ async function harvestRPDE({
       if (rpdeValidationErrors.length > 0) {
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
-        process.exit(1);
+        onError();
       }
 
       context.currentPage = url;
@@ -173,15 +179,15 @@ async function harvestRPDE({
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
-        process.exit(1);
+        onError();
       } else if (!error.isAxiosError) {
         // If a non-axios error, quit the application immediately
         if (multibar) multibar.stop();
         logErrorDuringHarvest(`FATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n${error.stack}`);
-        process.exit(1);
+        onError();
       } else if (error.response?.status === 404) {
         // If 404, simply stop polling feed
-        if (WAIT_FOR_HARVEST || VALIDATE_ONLY) { await onFeedEnd(); }
+        if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
         if (multibar) multibar.remove(context._progressbar);
         feedContextMap.delete(feedContextIdentifier);
         if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for RPDE feed ${feedContextIdentifier} page "${url}", feed will be ignored.`);
@@ -195,7 +201,7 @@ async function harvestRPDE({
         } else {
           if (multibar) multibar.stop();
           logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
-          process.exit(1);
+          onError();
         }
       }
     }

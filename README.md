@@ -28,12 +28,12 @@ A very simple example of `harvestRPDE` can be found in `examples/simple-rpde-har
 #### Required Parameters
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
-| args| object | Arguments |
 | baseUrl | string | Feed URL to harvest |
 | feedContextIdentifier | string | Unique identifier for feed within the dataset eg ScheduledSession |
 | headers | () => Promise<Object.<string,string>> | Function that returns headers needed to make a request to the feed URL |
 | processPage | (rpdePage: any, feedIdentifier: string, isInitialHarvestComplete: () => boolean) => Promise<void> | Function that processes items in each page of the feed | 
 | onFeedEnd | () => Promise<void> | Function that is called when the [last page](https://openactive.io/realtime-paged-data-exchange/#last-page-definition) of the feed is reached. This function may be called multiple times if new items are added after the first time `harvestRPDE()` reaches the last page |
+| onError | () => Promise<void> | Function that is called if the harvest errors |
 | isOrdersFeed | boolean | Is the feed an Orders feed? |
 
 #### Optional Parameters
