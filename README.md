@@ -13,9 +13,10 @@ $ npm install git://github.com/openactive/harvesting-utils.git
 ```js
 const { harvestRPDE } = require('@openactive/harvesting-utils')
 
-harvestRPDE(
-  ...relevant parameters here
-);
+harvestRPDE({
+  baseUrl: '...',
+  /* ...relevant parameters here */
+});
 ```
 
 ## Examples
