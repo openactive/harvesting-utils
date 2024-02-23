@@ -1,6 +1,5 @@
-export type FeedContext = any;
 export type RpdePageProcessor = (rpdePage: any, feedIdentifier: string, isInitialHarvestComplete: () => boolean) => Promise<void>;
-
+export type FeedContext = import('../models/FeedContext').FeedContext;
 /**
  * @typedef {(
 *   rpdePage: any,
@@ -9,17 +8,25 @@ export type RpdePageProcessor = (rpdePage: any, feedIdentifier: string, isInitia
 * ) => Promise<void>} RpdePageProcessor
 */
 /**
+ * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ */
+/**
  * @param {object} args
- * @param {string} args.baseUrl
+ * @param {string} args.baseUrl TODO: rename to feedUrl
  * @param {string} args.feedContextIdentifier
  * @param {() => Promise<Object.<string, string>>} args.headers
  * @param {RpdePageProcessor} args.processPage
  * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
  *   reached its end - when all items have been harvested.
+ * @param {() => Promise<void>} args.onError
  * @param {boolean} args.isOrdersFeed
  *
+ * The following parameters are optional, and are currently very openactive-broker-microservice specific.
+ * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
+ * https://github.com/openactive/harvesting-utils/pull/1/files#r1499134370
+ *
  * @param {object} [args.state]
- * @param {FeedContext} [args.state.context]
+ * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
  * @param {string[]} args.state.incompleteFeeds
  * @param {Date} args.state.startTime
@@ -40,7 +47,7 @@ export type RpdePageProcessor = (rpdePage: any, feedIdentifier: string, isInitia
 * @param {import('cli-progress').MultiBar} [args.options.multibar]
 * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
  */
-export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, isOrdersFeed, state: { context, feedContextMap, startTime, incompleteFeeds }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
+export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, onError, isOrdersFeed, state: { context, feedContextMap, startTime, incompleteFeeds }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
     baseUrl: string;
     feedContextIdentifier: string;
     headers: () => Promise<{
@@ -48,6 +55,7 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
     }>;
     processPage: RpdePageProcessor;
     onFeedEnd: () => Promise<void>;
+    onError: () => Promise<void>;
     isOrdersFeed: boolean;
     state?: {
         context?: FeedContext;
@@ -74,4 +82,3 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
         };
     };
 }): Promise<void>;
-//# sourceMappingURL=harvest-rpde.d.ts.map

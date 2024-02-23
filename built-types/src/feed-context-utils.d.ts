@@ -1,3 +1,7 @@
+export type FeedContext = import('../models/FeedContext').FeedContext;
+/**
+ * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ */
 /**
  * @param {string} feedContextIdentifier
  * @param {string} baseUrl
@@ -9,9 +13,8 @@ export function createFeedContext(feedContextIdentifier: string, baseUrl: string
  * @param {FeedContext} c
  */
 export function progressFromContext(c: FeedContext): {
-    totalItemsQueuedForValidation: any;
-    validatedItems: any;
+    totalItemsQueuedForValidation: number;
+    validatedItems: number;
     validatedPercentage: number;
-    items: any;
+    items: number;
 };
-//# sourceMappingURL=feed-context-utils.d.ts.map

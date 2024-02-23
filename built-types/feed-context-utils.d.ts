@@ -18,4 +18,3 @@ export function progressFromContext(c: FeedContext): {
     validatedPercentage: number;
     items: number;
 };
-//# sourceMappingURL=feed-context-utils.d.ts.map

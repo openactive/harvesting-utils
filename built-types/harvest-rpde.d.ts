@@ -21,6 +21,10 @@ export type FeedContext = import('../models/FeedContext').FeedContext;
  * @param {() => Promise<void>} args.onError
  * @param {boolean} args.isOrdersFeed
  *
+ * The following parameters are optional, and are currently very openactive-broker-microservice specific.
+ * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
+ * https://github.com/openactive/harvesting-utils/pull/1/files#r1499134370
+ *
  * @param {object} [args.state]
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
@@ -78,4 +82,3 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
         };
     };
 }): Promise<void>;
-//# sourceMappingURL=harvest-rpde.d.ts.map
