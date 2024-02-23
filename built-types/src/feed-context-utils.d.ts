@@ -1,6 +1,6 @@
-export type FeedContext = import('./FeedContext').FeedContext;
+export type FeedContext = import('./models/FeedContext').FeedContext;
 /**
- * @typedef {import('./FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 /**
  * @param {string} feedContextIdentifier
