@@ -28,10 +28,12 @@
   "homepage": "https://github.com/openactive/harvesting-utils#readme",
   "devDependencies": {
     "@types/node": "^20.11.19",
+    "copyfiles": "^2.4.1",
     "eslint": "^8.56.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.29.1",
     "husky": "^9.0.11",
+    "rimraf": "^5.0.5",
     "typescript": "^5.3.3"
   },
   "dependencies": {
