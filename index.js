@@ -3,7 +3,7 @@ const { createFeedContext, progressFromContext } = require('./src/feed-context-u
 
 /**
  * @typedef {import('./src/harvest-rpde').RpdePageProcessor} RpdePageProcessor
- * @typedef {import('./src/models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 
 module.exports = {
