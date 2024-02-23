@@ -1,5 +1,5 @@
 export type RpdePageProcessor = (rpdePage: any, feedIdentifier: string, isInitialHarvestComplete: () => boolean) => Promise<void>;
-export type FeedContext = import('../models/FeedContext').FeedContext;
+export type FeedContext = import('./models/FeedContext').FeedContext;
 /**
  * @typedef {(
 *   rpdePage: any,
@@ -8,7 +8,7 @@ export type FeedContext = import('../models/FeedContext').FeedContext;
 * ) => Promise<void>} RpdePageProcessor
 */
 /**
- * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 /**
  * @param {object} args

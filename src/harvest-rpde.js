@@ -15,7 +15,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
 */
 
 /**
- * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 
 /**
