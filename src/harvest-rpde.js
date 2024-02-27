@@ -119,7 +119,9 @@ async function harvestRPDE({
       if (rpdeValidationErrors.length > 0) {
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
+        // TODO: Provide context to the error callback
         onError();
+        return;
       }
 
       context.currentPage = url;
@@ -179,31 +181,39 @@ async function harvestRPDE({
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
+        // TODO: Provide context to the error callback
         onError();
-      } else if (!error.isAxiosError) {
+        return;
+      }
+      if (!error.isAxiosError) {
         // If a non-axios error, quit the application immediately
         if (multibar) multibar.stop();
         logErrorDuringHarvest(`FATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n${error.stack}`);
+        // TODO: Provide context to the error callback
         onError();
-      } else if (error.response?.status === 404) {
+        return;
+      }
+      if (error.response?.status === 404) {
         // If 404, simply stop polling feed
         if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
         if (multibar) multibar.remove(context._progressbar);
         feedContextMap.delete(feedContextIdentifier);
         if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for RPDE feed ${feedContextIdentifier} page "${url}", feed will be ignored.`);
         return;
-      } else {
-        logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for RPDE feed ${feedContextIdentifier} page "${url}" (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data === 'object' ? JSON.stringify(error.response.data, null, 2) : error.response.data}` : ''}`);
-        // Force retry, after a delay, up to 12 times
-        if (numberOfRetries < 12) {
-          numberOfRetries += 1;
-          await sleep(5000);
-        } else {
-          if (multibar) multibar.stop();
-          logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
-          onError();
-        }
       }
+      logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for RPDE feed ${feedContextIdentifier} page "${url}" (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data === 'object' ? JSON.stringify(error.response.data, null, 2) : error.response.data}` : ''}`);
+      // Force retry, after a delay, up to 12 times
+      if (numberOfRetries < 12) {
+        numberOfRetries += 1;
+        await sleep(5000);
+      } else {
+        if (multibar) multibar.stop();
+        logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
+        // TODO: Provide context to the error callback
+        onError();
+        return;
+      }
+
     }
   }
 }
