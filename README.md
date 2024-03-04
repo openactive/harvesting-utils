@@ -42,7 +42,6 @@ A very simple example of `harvestRPDE` can be found in `examples/simple-rpde-har
 | state | object | Existing state can be passed in and manipulated within harvestRPDE() |
 | state.context | FeedContext | Context about the feed. Default: new FeedContext(feedContextIdentifier,baseUrl, multibar) |
 | state.feedContextMap | Map<string, FeedContext> | Map containing FeedContexts about this and other feeds within the dataset. Default: new Map() |
-| state.incompleteFeeds | string[] | Array of feed identifiers which are not yet complete. Default: []  |
 | state.startTime | Date | Start time of the harvest. Default: new Date()  |
 | loggingFns | object | Logging functions for different cases |
 | loggingFns.log | (message?: any, ...optionalParams: any[]) => void | Normal logging. Default: console.log  |

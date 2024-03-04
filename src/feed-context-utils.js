@@ -1,5 +1,5 @@
 /**
- * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 
 /* TODO[suggestion] put FeedContext into a class so that it controls access to itself? And so that all it's logic

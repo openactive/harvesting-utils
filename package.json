@@ -7,7 +7,7 @@
   "scripts": {
     "test": "eslint && tsc",
     "gen-types-clean": "rimraf \"built-types/*\"",
-    "gen-types-copy-d-ts-files": "copyfiles --up 1 \"src/**/*.d.ts\" built-types/",
+    "gen-types-copy-d-ts-files": "copyfiles --up 1 \"src/**/*.d.ts\" built-types/src",
     "gen-types": "npm run gen-types-clean && tsc && npm run gen-types-copy-d-ts-files",
     "add-gen-types": "git add built-types",
     "gen-and-git-add-everything": "npm run gen-types && npm run add-gen-types"

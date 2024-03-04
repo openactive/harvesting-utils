@@ -17,7 +17,7 @@ const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
 */
 
 /**
- * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 
 /**
