@@ -1,5 +1,9 @@
 # harvesting-utils
-Utils library for harvesting RPDE feeds
+Utils library for harvesting [RPDE feeds](https://openactive.io/realtime-paged-data-exchange/).
+
+## Version 0.X.X
+
+This library is currently in version 0.X.X, which means that the API will not be stable until 1.0.0.
 
 ## Install
 This library can be installed as an npm package using the following command:
