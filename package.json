@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Utils library for harvesting RPDE feeds",
   "main": "index.js",
+  "types": "built-types/index.d.ts",
   "scripts": {
     "test": "eslint && tsc",
     "gen-types-clean": "rimraf \"built-types/*\"",
