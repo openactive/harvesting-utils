@@ -28,7 +28,7 @@ const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
  * @param {RpdePageProcessor} args.processPage
  * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
  *   reached its end - when all items have been harvested.
- * @param {() => Promise<void>} args.onError
+ * @param {() => void} args.onError
  * @param {boolean} args.isOrdersFeed
  *
  * The following parameters are optional, and are currently very openactive-broker-microservice specific.
@@ -145,7 +145,7 @@ async function harvestRPDE({
         } else if (VERBOSE) log(`Sleep mode poll for RPDE feed "${url}"`);
         context.sleepMode = true;
         if (context.timeToHarvestCompletion === undefined) context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
-        // Slow down sleep polling while waiting for harvesting of other feeds to complete
+        // Potentially poll more slowly at the end of the feed
         await sleep(
           howLongToSleepAtFeedEnd
             ? howLongToSleepAtFeedEnd()

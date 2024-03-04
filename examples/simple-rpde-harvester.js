@@ -1,4 +1,4 @@
-const { harvestRPDE } = require('../src/harvest-rpde');
+const { harvestRPDE } = require('..');
 
 function run() {
   // This is the URL of the RPDE feed

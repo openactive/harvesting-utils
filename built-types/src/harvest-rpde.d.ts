@@ -18,7 +18,7 @@ export type FeedContext = import('./models/FeedContext').FeedContext;
  * @param {RpdePageProcessor} args.processPage
  * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
  *   reached its end - when all items have been harvested.
- * @param {() => Promise<void>} args.onError
+ * @param {() => void} args.onError
  * @param {boolean} args.isOrdersFeed
  *
  * The following parameters are optional, and are currently very openactive-broker-microservice specific.
@@ -55,7 +55,7 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
     }>;
     processPage: RpdePageProcessor;
     onFeedEnd: () => Promise<void>;
-    onError: () => Promise<void>;
+    onError: () => void;
     isOrdersFeed: boolean;
     state?: {
         context?: FeedContext;
