@@ -42,13 +42,13 @@ A very simple example of `harvestRPDE` can be found in `examples/simple-rpde-har
 | state | object | Existing state can be passed in and manipulated within harvestRPDE() |
 | state.context | FeedContext | Context about the feed. Default: new FeedContext(feedContextIdentifier,baseUrl, multibar) |
 | state.feedContextMap | Map<string, FeedContext> | Map containing FeedContexts about this and other feeds within the dataset. Default: new Map() |
-| state.incompleteFeeds | string[] | Array of feed identifiers which are not yet complete. Default: []  |
 | state.startTime | Date | Start time of the harvest. Default: new Date()  |
 | loggingFns | object | Logging functions for different cases |
 | loggingFns.log | (message?: any, ...optionalParams: any[]) => void | Normal logging. Default: console.log  |
 | loggingFns.logError | (message?: any, ...optionalParams: any[]) => void | Error logging. Default: console.error |
 | loggingFns.logErrorDuringHarvest | (message?: any, ...optionalParams: any[]) => void | Error logging during the harvest Default: console.error |
 | config| object | Configuration options |
+| config.howLongToSleepAtFeedEnd | () => number | How long to wait, in milliseconds, before re-polling a feed after fetching the last page ([RPDE spec](https://openactive.io/realtime-paged-data-exchange/#polling-for-near-real-time-updates)). Default: `() => 500` |
 | config.WAIT_FOR_HARVEST | boolean | Whether to wait for harvest to complete and run onFeedEnd() function. Default: true |
 | config.VALIDATE_ONLY | boolean | TODO. Default: false |
 | config.VERBOSE | boolean | Verbose logging. Default: false |

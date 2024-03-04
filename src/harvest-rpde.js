@@ -6,6 +6,8 @@ const sleep = require('util').promisify(setTimeout);
 const { createFeedContext, progressFromContext } = require('./feed-context-utils');
 const { millisToMinutesAndSeconds } = require('./utils');
 
+const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
+
 /**
  * @typedef {(
 *   rpdePage: any,
@@ -15,7 +17,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
 */
 
 /**
- * @typedef {import('../models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/FeedContext').FeedContext} FeedContext
  */
 
 /**
@@ -26,7 +28,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
  * @param {RpdePageProcessor} args.processPage
  * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
  *   reached its end - when all items have been harvested.
- * @param {() => Promise<void>} args.onError
+ * @param {() => void} args.onError
  * @param {boolean} args.isOrdersFeed
  *
  * The following parameters are optional, and are currently very openactive-broker-microservice specific.
@@ -36,7 +38,6 @@ const { millisToMinutesAndSeconds } = require('./utils');
  * @param {object} [args.state]
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
- * @param {string[]} args.state.incompleteFeeds
  * @param {Date} args.state.startTime
 
  * @param {object} [args.loggingFns]
@@ -45,6 +46,7 @@ const { millisToMinutesAndSeconds } = require('./utils');
 * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
 *
 * @param {object} [args.config]
+* @param {() => number} [args.config.howLongToSleepAtFeedEnd]
 * @param {boolean} [args.config.WAIT_FOR_HARVEST]
 * @param {boolean} [args.config.VALIDATE_ONLY]
 * @param {boolean} [args.config.VERBOSE]
@@ -63,13 +65,13 @@ async function harvestRPDE({
   onFeedEnd,
   onError,
   isOrdersFeed,
-  state: { context, feedContextMap, startTime, incompleteFeeds } = {
-    context: null, feedContextMap: new Map(), startTime: new Date(), incompleteFeeds: [],
+  state: { context, feedContextMap, startTime } = {
+    context: null, feedContextMap: new Map(), startTime: new Date(),
   },
   loggingFns: { log, logError, logErrorDuringHarvest } = {
     log: console.log, logError: console.error, logErrorDuringHarvest: console.error,
   },
-  config: { WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
+  config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
     WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
@@ -143,8 +145,12 @@ async function harvestRPDE({
         } else if (VERBOSE) log(`Sleep mode poll for RPDE feed "${url}"`);
         context.sleepMode = true;
         if (context.timeToHarvestCompletion === undefined) context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
-        // Slow down sleep polling while waiting for harvesting of other feeds to complete
-        await sleep(WAIT_FOR_HARVEST && incompleteFeeds.length !== 0 ? 5000 : 500);
+        // Potentially poll more slowly at the end of the feed
+        await sleep(
+          howLongToSleepAtFeedEnd
+            ? howLongToSleepAtFeedEnd()
+            : DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END,
+        );
       } else {
         context.responseTimes.push(responseTime);
         // Maintain a buffer of the last 5 items
@@ -213,7 +219,6 @@ async function harvestRPDE({
         onError();
         return;
       }
-
     }
   }
 }
