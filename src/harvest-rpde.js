@@ -202,7 +202,7 @@ async function harvestRPDE({
         onError();
         return;
       }
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 || error.response?.status === 410) {
         // As per https://openactive.io/realtime-paged-data-exchange/#http-status-codes, consider this endpoint in an error state and do not retry
         // If 404, simply stop polling feed
         if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
