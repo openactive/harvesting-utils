@@ -28,7 +28,6 @@ export type FeedContext = import('../models/FeedContext').FeedContext;
  * @param {object} [args.state]
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
- * @param {string[]} args.state.incompleteFeeds
  * @param {Date} args.state.startTime
 
  * @param {object} [args.loggingFns]
@@ -37,6 +36,7 @@ export type FeedContext = import('../models/FeedContext').FeedContext;
 * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
 *
 * @param {object} [args.config]
+* @param {() => number} [args.config.howLongToSleepAtFeedEnd]
 * @param {boolean} [args.config.WAIT_FOR_HARVEST]
 * @param {boolean} [args.config.VALIDATE_ONLY]
 * @param {boolean} [args.config.VERBOSE]
@@ -47,7 +47,7 @@ export type FeedContext = import('../models/FeedContext').FeedContext;
 * @param {import('cli-progress').MultiBar} [args.options.multibar]
 * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
  */
-export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, onError, isOrdersFeed, state: { context, feedContextMap, startTime, incompleteFeeds }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
+export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, onError, isOrdersFeed, state: { context, feedContextMap, startTime }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
     baseUrl: string;
     feedContextIdentifier: string;
     headers: () => Promise<{
@@ -60,7 +60,6 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
     state?: {
         context?: FeedContext;
         feedContextMap?: Map<string, FeedContext>;
-        incompleteFeeds: string[];
         startTime: Date;
     };
     loggingFns?: {
@@ -69,6 +68,7 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
         logErrorDuringHarvest?: (message?: any, ...optionalParams: any[]) => void;
     };
     config?: {
+        howLongToSleepAtFeedEnd?: () => number;
         WAIT_FOR_HARVEST?: boolean;
         VALIDATE_ONLY?: boolean;
         VERBOSE?: boolean;
