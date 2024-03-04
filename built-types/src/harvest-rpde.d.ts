@@ -29,23 +29,25 @@ export type FeedContext = import('./models/FeedContext').FeedContext;
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
  * @param {Date} args.state.startTime
-
+ *
  * @param {object} [args.loggingFns]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.log]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logError]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
-*
-* @param {object} [args.config]
-* @param {() => number} [args.config.howLongToSleepAtFeedEnd]
-* @param {boolean} [args.config.WAIT_FOR_HARVEST]
-* @param {boolean} [args.config.VALIDATE_ONLY]
-* @param {boolean} [args.config.VERBOSE]
-* @param {string} [args.config.ORDER_PROPOSALS_FEED_IDENTIFIER]
-* @param {boolean} [args.config.REQUEST_LOGGING_ENABLED]
-*
-* @param {object} [args.options]
-* @param {import('cli-progress').MultiBar} [args.options.multibar]
-* @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.log]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logError]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
+ *
+ * @param {object} [args.config]
+ * @param {() => number} [args.config.howLongToSleepAtFeedEnd]
+ * @param {boolean} [args.config.WAIT_FOR_HARVEST]
+ * @param {boolean} [args.config.VALIDATE_ONLY]
+ * @param {boolean} [args.config.VERBOSE]
+ * @param {string} [args.config.ORDER_PROPOSALS_FEED_IDENTIFIER]
+ * @param {boolean} [args.config.REQUEST_LOGGING_ENABLED]
+ *
+ * @param {object} [args.options]
+ * @param {import('cli-progress').MultiBar} [args.options.multibar]
+ * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
+ *
+ * @returns {Promise<void>} Only returns if there is a fatal error.
  */
 export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, onError, isOrdersFeed, state: { context, feedContextMap, startTime }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
     baseUrl: string;

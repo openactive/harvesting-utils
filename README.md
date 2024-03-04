@@ -25,6 +25,10 @@ A very simple example of `harvestRPDE` can be found in `examples/simple-rpde-har
 ## API Reference
 ### harvestRPDE
 
+Indefinitely harvests an RPDE feed, following the ["expected consumer behaviour" described in the RPDE spec](https://openactive.io/realtime-paged-data-exchange/#expected-consumer-behaviour).
+
+**N.B.** This function will run indefinitely, and only return if a fatal error occurs. For this reason, you will generally **not** want to run `await harvestRPDE(..)`.
+
 #### Required Parameters
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
