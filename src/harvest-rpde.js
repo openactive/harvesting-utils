@@ -185,7 +185,8 @@ async function harvestRPDE({
       if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && isOrdersFeed) {
         onFeedEnd();
       }
-      // TODO document: What is a 'FatalError'?
+      // TODO This code is unfortunately coupled with code in Broker Microservice (https://github.com/openactive/openactive-test-suite/tree/master/packages/openactive-broker-microservice),
+      // in which a "FatalError" can be thrown by a `processPage(..)` callback. This should be decoupled.
       if (error.name === 'FatalError') {
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
