@@ -39,23 +39,25 @@ const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
  * @param {FeedContext} [args.state.context] TODO: rename to feedContext
  * @param {Map<string, FeedContext>} [args.state.feedContextMap]
  * @param {Date} args.state.startTime
-
+ *
  * @param {object} [args.loggingFns]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.log]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logError]
-* @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
-*
-* @param {object} [args.config]
-* @param {() => number} [args.config.howLongToSleepAtFeedEnd]
-* @param {boolean} [args.config.WAIT_FOR_HARVEST]
-* @param {boolean} [args.config.VALIDATE_ONLY]
-* @param {boolean} [args.config.VERBOSE]
-* @param {string} [args.config.ORDER_PROPOSALS_FEED_IDENTIFIER]
-* @param {boolean} [args.config.REQUEST_LOGGING_ENABLED]
-*
-* @param {object} [args.options]
-* @param {import('cli-progress').MultiBar} [args.options.multibar]
-* @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.log]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logError]
+ * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
+ *
+ * @param {object} [args.config]
+ * @param {() => number} [args.config.howLongToSleepAtFeedEnd]
+ * @param {boolean} [args.config.WAIT_FOR_HARVEST]
+ * @param {boolean} [args.config.VALIDATE_ONLY]
+ * @param {boolean} [args.config.VERBOSE]
+ * @param {string} [args.config.ORDER_PROPOSALS_FEED_IDENTIFIER]
+ * @param {boolean} [args.config.REQUEST_LOGGING_ENABLED]
+ *
+ * @param {object} [args.options]
+ * @param {import('cli-progress').MultiBar} [args.options.multibar]
+ * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
+ *
+ * @returns {Promise<void>} Only returns if there is a fatal error.
  */
 async function harvestRPDE({
   baseUrl,
@@ -183,6 +185,8 @@ async function harvestRPDE({
       if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && isOrdersFeed) {
         onFeedEnd();
       }
+      // TODO This code is unfortunately coupled with code in Broker Microservice (https://github.com/openactive/openactive-test-suite/tree/master/packages/openactive-broker-microservice),
+      // in which a "FatalError" can be thrown by a `processPage(..)` callback. This should be decoupled.
       if (error.name === 'FatalError') {
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
@@ -199,7 +203,8 @@ async function harvestRPDE({
         onError();
         return;
       }
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 || error.response?.status === 410) {
+        // As per https://openactive.io/realtime-paged-data-exchange/#http-status-codes, consider this endpoint in an error state and do not retry
         // If 404, simply stop polling feed
         if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
         if (multibar) multibar.remove(context._progressbar);
