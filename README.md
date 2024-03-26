@@ -31,7 +31,7 @@ A very simple example of `harvestRPDE` can be found in `examples/simple-rpde-har
 
 Indefinitely harvests an RPDE feed, following the ["expected consumer behaviour" described in the RPDE spec](https://openactive.io/realtime-paged-data-exchange/#expected-consumer-behaviour).
 
-**N.B.** This function will run indefinitely, and only return if a fatal error occurs. For this reason, you will generally **not** want to run `await harvestRPDE(..)`.
+This function starts an indefinite process to continuously harvest using `setImmediate(..)`. It can be stopped using the `stopHarvesting()` function that it returns.
 
 #### Required Parameters
 | Parameter | Type | Description |
@@ -65,6 +65,14 @@ Indefinitely harvests an RPDE feed, following the ["expected consumer behaviour"
 | options | object | Optional features |
 | options.multibar | import('cli-progress').MultiBar | If using cli-progress.Multibar, this can be supplied and harvesting updates will be provided to the multibar. Default: null |
 | options.pauseResume | {waitIfPaused: () => Promise<void>} | Function, if implemented, that can be used to pause harvesting. Default: null |
+
+#### Returns
+
+Returns an object with the following fields:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| stopHarvesting | () => void | Function that can be called to stop the harvesting process — it will stop on its next iteration after this function is called |
 
 ### createFeedContext
 Function that creates a FeedContext object

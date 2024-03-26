@@ -47,7 +47,8 @@ export type FeedContext = import('./models/FeedContext').FeedContext;
  * @param {import('cli-progress').MultiBar} [args.options.multibar]
  * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
  *
- * @returns {Promise<void>} Only returns if there is a fatal error.
+ * @returns {{ stopHarvesting: () => void }} Call `stopHarvesting()` to stop
+ *   the harvesting process.
  */
 export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPage, onFeedEnd, onError, isOrdersFeed, state: { context, feedContextMap, startTime }, loggingFns: { log, logError, logErrorDuringHarvest }, config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED }, options: { multibar, pauseResume }, }: {
     baseUrl: string;
@@ -83,4 +84,6 @@ export function harvestRPDE({ baseUrl, feedContextIdentifier, headers, processPa
             waitIfPaused: () => Promise<void>;
         };
     };
-}): Promise<void>;
+}): {
+    stopHarvesting: () => void;
+};
