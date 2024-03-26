@@ -1,6 +1,9 @@
 import { FeedContext } from './FeedContext';
 import { RpdePageProcessor } from './RpdePageProcessor';
 
+// When this is more typed, turn this into HarvestRpdeArgs<T> when T is the type of `modified`. modified can etiher be
+// string or number depending on if it is a lossless harvest or not.
+
 export type HarvestRpdeArgs = {
   baseUrl: string; // TODO: rename to feedUrl
   feedContextIdentifier: string;

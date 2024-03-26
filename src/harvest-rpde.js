@@ -62,16 +62,16 @@ async function baseHarvestRPDE({
         headers: await headers(),
         transformResponse: (data) => {
           const lowFidelityData = JSON.parse(data);
-          const protoHighFidelityData = /** @type {any} */(jsonParseAllowingBigInts(data));
+          const highFidelityData = /** @type {any} */(jsonParseAllowingBigInts(data));
           // Store `modified`s as strings
-          const rpdeItemsWithStringModifieds = protoHighFidelityData.items.map(item => ({
+          const rpdeItemsWithStringModifieds = highFidelityData.items.map(item => ({
             ...item,
             modified: String(item.modified),
           }));
 
           return {
             lowFidelityData,
-            highFidelityData: { ...protoHighFidelityData, items: rpdeItemsWithStringModifieds },
+            highFidelityData: { ...highFidelityData, items: rpdeItemsWithStringModifieds },
           };
         },
       };
