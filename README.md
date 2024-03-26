@@ -88,6 +88,10 @@ Function that returns harvesting progress values from a FeedContext object
 | --------- | ---- | ----------- |
 | context | FeedContext | FeedContext object to get progress values from |
 
+### harvestRpdeLossless
+`harvestRpdeLossless` has the same function signature as `harvestRpde`. However it is capable of handling `modified` values that are too large for JavaScript numbers to handle natively ie > 2^53. This is handled by storing them as strings in memory. 
+
+For more guidance on how to handle these values, see [here](https://developer.openactive.io/using-data/harvesting-opportunity-data/large-integers-in-javascript).
 
 ## Developing
 ### TypeScript

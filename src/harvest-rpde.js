@@ -4,62 +4,23 @@ const { FeedPageChecker } = require('@openactive/rpde-validator');
 const sleep = require('util').promisify(setTimeout);
 
 const { createFeedContext, progressFromContext } = require('./feed-context-utils');
-const { millisToMinutesAndSeconds } = require('./utils');
+const { millisToMinutesAndSeconds, jsonParseAllowingBigInts } = require('./utils');
 
 const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
 
 /**
- * @typedef {(
-*   rpdePage: any,
-*   feedIdentifier: string,
-*   isInitialHarvestComplete: () => boolean,
-* ) => Promise<void>} RpdePageProcessor
-*/
-
-/**
  * @typedef {import('./models/FeedContext').FeedContext} FeedContext
+ * @typedef {import('./models/RpdePageProcessor').RpdePageProcessor} RpdePageProcessor
+ * @typedef {import('./models/HarvestRpde').HarvestRpdeArgs} HarvestRpdeArgs
  */
 
 /**
- * @param {object} args
- * @param {string} args.baseUrl TODO: rename to feedUrl
- * @param {string} args.feedContextIdentifier
- * @param {() => Promise<Object.<string, string>>} args.headers
- * @param {RpdePageProcessor} args.processPage
- * @param {() => Promise<void>} args.onFeedEnd Callback which will be called when the feed has
- *   reached its end - when all items have been harvested.
- * @param {() => void} args.onError
- * @param {boolean} args.isOrdersFeed
- *
- * The following parameters are optional, and are currently very openactive-broker-microservice specific.
- * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
- * https://github.com/openactive/harvesting-utils/pull/1/files#r1499134370
- *
- * @param {object} [args.state]
- * @param {FeedContext} [args.state.context] TODO: rename to feedContext
- * @param {Map<string, FeedContext>} [args.state.feedContextMap]
- * @param {Date} args.state.startTime
- *
- * @param {object} [args.loggingFns]
- * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.log]
- * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logError]
- * @param {(message?: any, ...optionalParams: any[]) => void} [args.loggingFns.logErrorDuringHarvest]
- *
- * @param {object} [args.config]
- * @param {() => number} [args.config.howLongToSleepAtFeedEnd]
- * @param {boolean} [args.config.WAIT_FOR_HARVEST]
- * @param {boolean} [args.config.VALIDATE_ONLY]
- * @param {boolean} [args.config.VERBOSE]
- * @param {string} [args.config.ORDER_PROPOSALS_FEED_IDENTIFIER]
- * @param {boolean} [args.config.REQUEST_LOGGING_ENABLED]
- *
- * @param {object} [args.options]
- * @param {import('cli-progress').MultiBar} [args.options.multibar]
- * @param {{waitIfPaused: () => Promise<void>}} [args.options.pauseResume]
+ * @param {HarvestRpdeArgs} args
+ * @param {boolean} [isLosslessMode=false] If true, the high-fidelity data TODO
  *
  * @returns {Promise<void>} Only returns if there is a fatal error.
  */
-async function harvestRPDE({
+async function baseHarvestRPDE({
   baseUrl,
   feedContextIdentifier,
   headers,
@@ -77,7 +38,7 @@ async function harvestRPDE({
     WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
-}) {
+}, isLosslessMode = false) {
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
   if (!context) context = createFeedContext(feedContextIdentifier, baseUrl, multibar);
@@ -99,6 +60,20 @@ async function harvestRPDE({
     try {
       const axiosConfig = {
         headers: await headers(),
+        transformResponse: (data) => {
+          const lowFidelityData = JSON.parse(data);
+          const highFidelityData = /** @type {any} */(jsonParseAllowingBigInts(data));
+          // Store `modified`s as strings
+          const rpdeItemsWithStringModifieds = highFidelityData.items.map(item => ({
+            ...item,
+            modified: String(item.modified),
+          }));
+
+          return {
+            lowFidelityData,
+            highFidelityData: { ...highFidelityData, items: rpdeItemsWithStringModifieds },
+          };
+        },
       };
 
       const timerStart = performance.now();
@@ -106,12 +81,15 @@ async function harvestRPDE({
       const timerEnd = performance.now();
       const responseTime = timerEnd - timerStart;
 
-      const json = response.data;
+      // Low fidelity data must be used for validation as validator cannot deal with BigInts.
+      // High fidelity data contains modified as a string that contains a BigInt. This breaks RPDE validation rules that
+      // state that modified can't be a string representation of a number.
+      const validationJson = response.data.lowFidelityData;
 
       // Validate RPDE page using RPDE Validator, noting that for non-2xx state.pendingGetOpportunityResponses that we want to retry axios will have already thrown an error above
       const rpdeValidationErrors = feedChecker.validateRpdePage({
         url,
-        json,
+        json: validationJson,
         pageIndex: context.pages,
         contentType: response.headers['content-type'],
         cacheControl: response.headers['cache-control'],
@@ -128,6 +106,7 @@ async function harvestRPDE({
         return;
       }
 
+      const json = isLosslessMode ? response.data.highFidelityData : response.data.lowFidelityData;
       context.currentPage = url;
       if (json.next === url && json.items.length === 0) {
         if (!isInitialHarvestComplete) {
@@ -228,4 +207,22 @@ async function harvestRPDE({
   }
 }
 
-module.exports = { harvestRPDE };
+/**
+ * @param {HarvestRpdeArgs} args
+ *
+ * @returns {Promise<void>} Only returns if there is a fatal error.
+ */
+function harvestRPDE(args) {
+  return baseHarvestRPDE(args, false);
+}
+
+/**
+ * @param {HarvestRpdeArgs} args
+ *
+ * @returns {Promise<void>} Only returns if there is a fatal error.
+ */
+function harvestRPDELossless(args) {
+  return baseHarvestRPDE(args, true);
+}
+
+module.exports = { harvestRPDE, harvestRPDELossless };
