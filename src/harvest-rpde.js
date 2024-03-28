@@ -97,6 +97,7 @@ function harvestRPDE({
     isStopped = true;
   };
 
+  // So that feed harvesting does not block the callee
   setImmediate(async () => {
     // Harvest forever, until a 404 is encountered
     while (!isStopped) {
