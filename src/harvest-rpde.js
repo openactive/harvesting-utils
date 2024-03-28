@@ -3,6 +3,7 @@ const { performance } = require('perf_hooks');
 const { FeedPageChecker } = require('@openactive/rpde-validator');
 const sleep = require('util').promisify(setTimeout);
 
+const { RpdeValidationErrorsError } = require('./errors');
 const { createFeedContext, progressFromContext } = require('./feed-context-utils');
 const { millisToMinutesAndSeconds, jsonParseAllowingBigInts } = require('./utils');
 
@@ -102,7 +103,7 @@ async function baseHarvestRPDE({
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
         // TODO: Provide context to the error callback
-        onError();
+        onError(new RpdeValidationErrorsError(feedContextIdentifier, url, rpdeValidationErrors));
         return;
       }
 
@@ -170,16 +171,16 @@ async function baseHarvestRPDE({
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
-        // TODO: Provide context to the error callback
-        onError();
+        // TODO: Provide sufficient context to the error callback
+        onError(error);
         return;
       }
       if (!error.isAxiosError) {
         // If a non-axios error, quit the application immediately
         if (multibar) multibar.stop();
         logErrorDuringHarvest(`FATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n${error.stack}`);
-        // TODO: Provide context to the error callback
-        onError();
+        // TODO: Provide sufficient context to the error callback
+        onError(error);
         return;
       }
       if (error.response?.status === 404 || error.response?.status === 410) {
@@ -199,8 +200,8 @@ async function baseHarvestRPDE({
       } else {
         if (multibar) multibar.stop();
         logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
-        // TODO: Provide context to the error callback
-        onError();
+        // TODO: Provide sufficient context to the error callback
+        onError(error);
         return;
       }
     }

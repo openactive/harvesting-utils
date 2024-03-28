@@ -41,7 +41,7 @@ Indefinitely harvests an RPDE feed, following the ["expected consumer behaviour"
 | headers | () => Promise<Object.<string,string>> | Function that returns headers needed to make a request to the feed URL |
 | processPage | (rpdePage: any, feedIdentifier: string, isInitialHarvestComplete: () => boolean) => Promise<void> | Function that processes items in each page of the feed | 
 | onFeedEnd | () => Promise<void> | Function that is called when the [last page](https://openactive.io/realtime-paged-data-exchange/#last-page-definition) of the feed is reached. This function may be called multiple times if new items are added after the first time `harvestRPDE()` reaches the last page |
-| onError | () => Promise<void> | Function that is called if the harvest errors |
+| onError | (error: Error) => Promise<void> | Function that is called if the harvest errors. This error will be an [axios error](https://axios-http.com/docs/handling_errors) if there was an HTTP error |
 | isOrdersFeed | boolean | Is the feed an Orders feed? |
 
 #### Optional Parameters

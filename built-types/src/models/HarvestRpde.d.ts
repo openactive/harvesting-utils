@@ -10,7 +10,7 @@ export type HarvestRpdeArgs = {
   headers: () => Promise<{ [key: string]: string }>;
   processPage: RpdePageProcessor;
   onFeedEnd: () => Promise<void>; // Callback which will be called when the feed has reached its end - when all items have been harvested.
-  onError: () => void;
+  onError: (error: Error) => void;
   isOrdersFeed: boolean;
   /* The following parameters are optional, and are currently very openactive-broker-microservice specific.
    * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
