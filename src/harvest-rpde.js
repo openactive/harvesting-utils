@@ -71,9 +71,9 @@ async function baseHarvestRPDE({
           const highFidelityData = /** @type {any} */(jsonParseAllowingBigInts(data));
           // Store `modified`s as strings if 'items' exists
           const rpdeItemsWithStringModifieds = highFidelityData?.items?.map(item => ({
-                ...item,
-                modified: String(item.modified),
-              }));
+            ...item,
+            modified: String(item.modified),
+          }));
 
           return {
             lowFidelityData,
