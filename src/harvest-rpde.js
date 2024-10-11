@@ -61,10 +61,16 @@ async function baseHarvestRPDE({
       const axiosConfig = {
         headers: await headers(),
         transformResponse: (data) => {
-          const lowFidelityData = JSON.parse(data);
+          let lowFidelityData;
+          try {
+            lowFidelityData = JSON.parse(data);
+          } catch (error) {
+            // Return the original data if parsing fails
+            return data;
+          }
           const highFidelityData = /** @type {any} */(jsonParseAllowingBigInts(data));
-          // Store `modified`s as strings
-          const rpdeItemsWithStringModifieds = highFidelityData.items.map(item => ({
+          // Store `modified`s as strings if 'items' exists
+          const rpdeItemsWithStringModifieds = highFidelityData.items?.map(item => ({
             ...item,
             modified: String(item.modified),
           }));
@@ -77,9 +83,17 @@ async function baseHarvestRPDE({
       };
 
       const timerStart = performance.now();
+      // Axios will throw an error if the status code is not 2xx
       const response = await axios.get(url, axiosConfig);
       const timerEnd = performance.now();
       const responseTime = timerEnd - timerStart;
+
+      if (!response.data || typeof response.data !== 'object' || !response.data.lowFidelityData || typeof response.data.lowFidelityData !== 'object') {
+        logError(`\nFATAL ERROR: RPDE feed ${feedContextIdentifier} page "${url}" with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
+        // TODO: Provide context to the error callback
+        onError();
+        return;
+      }
 
       // Low fidelity data must be used for validation as validator cannot deal with BigInts.
       // High fidelity data contains modified as a string that contains a BigInt. This breaks RPDE validation rules that
@@ -191,7 +205,7 @@ async function baseHarvestRPDE({
         if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for RPDE feed ${feedContextIdentifier} page "${url}", feed will be ignored.`);
         return;
       }
-      logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for RPDE feed ${feedContextIdentifier} page "${url}" (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data === 'object' ? JSON.stringify(error.response.data, null, 2) : error.response.data}` : ''}`);
+      logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for RPDE feed ${feedContextIdentifier} page "${url}" (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data?.lowFidelityData === 'object' ? JSON.stringify(error.response.data.lowFidelityData, null, 2) : error.response.data}` : ''}`);
       // Force retry, after a delay, up to 12 times
       if (numberOfRetries < 12) {
         numberOfRetries += 1;
