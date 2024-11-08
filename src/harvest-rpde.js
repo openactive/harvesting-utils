@@ -89,7 +89,8 @@ async function baseHarvestRPDE({
       const responseTime = timerEnd - timerStart;
 
       if (!response.data || typeof response.data !== 'object' || !response.data.lowFidelityData || typeof response.data.lowFidelityData !== 'object') {
-        logError(`\nFATAL ERROR: RPDE feed ${feedContextIdentifier} page "${url}" with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
+        if (multibar) multibar.stop();
+        logErrorDuringHarvest(`\nFATAL ERROR: RPDE feed ${feedContextIdentifier} page "${url}" with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -114,7 +115,7 @@ async function baseHarvestRPDE({
 
       if (rpdeValidationErrors.length > 0) {
         if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
+        logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -183,7 +184,7 @@ async function baseHarvestRPDE({
       if (error.name === 'FatalError') {
         // If a fatal error, quit the application immediately
         if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
+        logErrorDuringHarvest(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -212,7 +213,7 @@ async function baseHarvestRPDE({
         await sleep(5000);
       } else {
         if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
+        logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
