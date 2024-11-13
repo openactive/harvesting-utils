@@ -126,8 +126,10 @@ async function baseHarvestRPDE({
         stopMultibar();
         logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on ${pageDescriptiveIdentifier(url, headersForThisRequest)}:\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
         // TODO: Provide context to the error callback
-        onError();
-        return;
+        if (process.env.DEBUG_IGNORE_RPDE_VALIDATION_ERRORS !== 'true') {
+          onError();
+          return;
+        }
       }
 
       const json = isLosslessMode ? response.data.highFidelityData : response.data.lowFidelityData;
