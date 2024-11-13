@@ -42,8 +42,7 @@ async function baseHarvestRPDE({
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
 }, isLosslessMode = false) {
   const stopMultibar = () => {
-    // Ensure that the multibar is stopped only if it has not already been stopped (to prevent extraneous output)
-    // TODO: Ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
+    // TODO: To prevent extraneous output, ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
     if (multibar) multibar.stop();
   };
   const pageDescriptiveIdentifier = (url, headers) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(headers)})`;
