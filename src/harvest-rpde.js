@@ -32,13 +32,20 @@ async function baseHarvestRPDE({
     context: null, feedContextMap: new Map(), startTime: new Date(),
   },
   loggingFns: { log, logError, logErrorDuringHarvest } = {
-    log: console.log, logError: console.error, logErrorDuringHarvest: console.error,
+    log: console.log,
+    logError: console.error,
+    logErrorDuringHarvest: (x) => console.error(`\n\n${x}\n\n\n\n\n\n\n\n\n`), // Ensure messages are displayed above the multibar output
   },
   config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
     WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
 }, isLosslessMode = false) {
+  const stopMultibar = () => {
+    // TODO: To prevent extraneous output, ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
+    if (multibar) multibar.stop();
+  };
+  const pageDescriptiveIdentifier = (url, headers) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(headers)})`;
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
   if (!context) context = createFeedContext(feedContextIdentifier, baseUrl, multibar);
@@ -57,9 +64,11 @@ async function baseHarvestRPDE({
     // If harvesting is paused, block using the mutex
     if (pauseResume) await pauseResume.waitIfPaused();
 
+    const headersForThisRequest = await headers();
+
     try {
       const axiosConfig = {
-        headers: await headers(),
+        headers: headersForThisRequest,
         transformResponse: (data) => {
           let lowFidelityData;
           try {
@@ -89,7 +98,8 @@ async function baseHarvestRPDE({
       const responseTime = timerEnd - timerStart;
 
       if (!response.data || typeof response.data !== 'object' || !response.data.lowFidelityData || typeof response.data.lowFidelityData !== 'object') {
-        logError(`\nFATAL ERROR: RPDE feed ${feedContextIdentifier} page "${url}" with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
+        stopMultibar();
+        logErrorDuringHarvest(`\nFATAL ERROR: ${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -113,8 +123,8 @@ async function baseHarvestRPDE({
       });
 
       if (rpdeValidationErrors.length > 0) {
-        if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR: RPDE Validation Error(s) found on RPDE feed ${feedContextIdentifier} page "${url}":\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
+        stopMultibar();
+        logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on ${pageDescriptiveIdentifier(url, headersForThisRequest)}:\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -182,16 +192,16 @@ async function baseHarvestRPDE({
       // in which a "FatalError" can be thrown by a `processPage(..)` callback. This should be decoupled.
       if (error.name === 'FatalError') {
         // If a fatal error, quit the application immediately
-        if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n`);
+        stopMultibar();
+        logErrorDuringHarvest(`\nFATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
       }
       if (!error.isAxiosError) {
         // If a non-axios error, quit the application immediately
-        if (multibar) multibar.stop();
-        logErrorDuringHarvest(`FATAL ERROR for RPDE feed ${feedContextIdentifier} page "${url}": ${error.message}\n${error.stack}`);
+        stopMultibar();
+        logErrorDuringHarvest(`FATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`);
         // TODO: Provide context to the error callback
         onError();
         return;
@@ -202,17 +212,17 @@ async function baseHarvestRPDE({
         if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
         if (multibar) multibar.remove(context._progressbar);
         feedContextMap.delete(feedContextIdentifier);
-        if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for RPDE feed ${feedContextIdentifier} page "${url}", feed will be ignored.`);
+        if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for ${pageDescriptiveIdentifier(url, headersForThisRequest)}, feed will be ignored.`);
         return;
       }
-      logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for RPDE feed ${feedContextIdentifier} page "${url}" (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data?.lowFidelityData === 'object' ? JSON.stringify(error.response.data.lowFidelityData, null, 2) : error.response.data}` : ''}`);
+      logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for ${pageDescriptiveIdentifier(url, headersForThisRequest)} (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data?.lowFidelityData === 'object' ? JSON.stringify(error.response.data.lowFidelityData, null, 2) : error.response.data}` : ''}`);
       // Force retry, after a delay, up to 12 times
       if (numberOfRetries < 12) {
         numberOfRetries += 1;
         await sleep(5000);
       } else {
-        if (multibar) multibar.stop();
-        logError(`\nFATAL ERROR: Retry limit exceeded for RPDE feed ${feedContextIdentifier} page "${url}"\n`);
+        stopMultibar();
+        logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for ${pageDescriptiveIdentifier(url, headersForThisRequest)}\n`);
         // TODO: Provide context to the error callback
         onError();
         return;
