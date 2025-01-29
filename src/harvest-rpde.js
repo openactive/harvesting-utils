@@ -4,7 +4,7 @@ const { FeedPageChecker } = require('@openactive/rpde-validator');
 const sleep = require('util').promisify(setTimeout);
 
 const { createFeedContext, progressFromContext } = require('./feed-context-utils');
-const { millisToMinutesAndSeconds, jsonParseAllowingBigInts } = require('./utils');
+const { jsonParseAllowingBigInts } = require('./utils');
 
 const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
 
@@ -30,8 +30,8 @@ async function baseHarvestRPDE({
   // onError,
   // onFeedNotFoundError,
   isOrdersFeed,
-  state: { context, startTime } = {
-    context: null, startTime: new Date(),
+  state: { context } = {
+    context: null,
   },
   // eslint-disable-next-line no-unused-vars
   loggingFns: { log, logError, logErrorDuringHarvest } = {
@@ -173,10 +173,6 @@ async function baseHarvestRPDE({
           isInitialHarvestComplete = true;
         }
         await onReachedEndOfFeed(url);
-        context.sleepMode = true;
-        if (context.timeToHarvestCompletion === undefined) {
-          context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
-        }
         // Potentially poll more slowly at the end of the feed
         await sleep(
           howLongToSleepAtFeedEnd

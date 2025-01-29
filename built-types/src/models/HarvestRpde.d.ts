@@ -60,7 +60,6 @@ export type HarvestRpdeArgs = {
    */
   state?: {
     context?: FeedContext; // TODO: rename to feedContext
-    startTime: Date;
   };
   loggingFns?: {
     log?: (message?: any, ...optionalParams: any[]) => void;
