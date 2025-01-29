@@ -27,7 +27,6 @@ export type HarvestRpdeArgs = {
    */
   state?: {
     context?: FeedContext; // TODO: rename to feedContext
-    feedContextMap?: Map<string, FeedContext>;
     startTime: Date;
   };
   loggingFns?: {
