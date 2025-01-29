@@ -27,14 +27,16 @@ async function baseHarvestRPDE({
   processPage,
   onFeedEnd,
   onError,
+  onFeedNotFoundError,
   isOrdersFeed,
-  state: { context, feedContextMap, startTime } = {
-    context: null, feedContextMap: new Map(), startTime: new Date(),
+  state: { context, startTime } = {
+    context: null, startTime: new Date(),
   },
+  // eslint-disable-next-line no-unused-vars
   loggingFns: { log, logError, logErrorDuringHarvest } = {
     log: console.log,
     logError: console.error,
-    logErrorDuringHarvest: (x) => console.error(`\n\n${x}\n\n\n\n\n\n\n\n\n`), // Ensure messages are displayed above the multibar output
+    logErrorDuringHarvest: x => console.error(`\n\n${x}\n\n\n\n\n\n\n\n\n`), // Ensure messages are displayed above the multibar output
   },
   config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
     WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
@@ -45,15 +47,12 @@ async function baseHarvestRPDE({
     // TODO: To prevent extraneous output, ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
     if (multibar) multibar.stop();
   };
-  const pageDescriptiveIdentifier = (url, headers) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(headers)})`;
+  const pageDescriptiveIdentifier = (url, thisHeaders) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(thisHeaders)})`;
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
+  // TODO3 remove context after we've figured out what it does
   if (!context) context = createFeedContext(feedContextIdentifier, baseUrl, multibar);
 
-  if (feedContextMap.has(feedContextIdentifier)) {
-    throw new Error('Duplicate feed identifier not permitted within dataset distribution.');
-  }
-  feedContextMap.set(feedContextIdentifier, context);
   let url = baseUrl;
 
   // One instance of FeedPageChecker per feed, as it maintains state relating to the feed
@@ -114,7 +113,7 @@ async function baseHarvestRPDE({
       const rpdeValidationErrors = feedChecker.validateRpdePage({
         url,
         json: validationJson,
-        pageIndex: context.pages,
+        pageIndex: context.pageIndex,
         contentType: response.headers['content-type'],
         cacheControl: response.headers['cache-control'],
         status: response.status,
@@ -136,7 +135,7 @@ async function baseHarvestRPDE({
         if (!isInitialHarvestComplete) {
           if (context._progressbar) {
             context._progressbar.update(context.validatedItems, {
-              pages: context.pages,
+              pages: context.pageIndex,
               responseTime: Math.round(responseTime),
               ...progressFromContext(context),
               status: context.items === 0 ? 'Harvesting Complete (No items to validate)' : 'Harvesting Complete, Validating...',
@@ -149,7 +148,9 @@ async function baseHarvestRPDE({
           await onFeedEnd();
         } else if (VERBOSE) log(`Sleep mode poll for RPDE feed "${url}"`);
         context.sleepMode = true;
-        if (context.timeToHarvestCompletion === undefined) context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
+        if (context.timeToHarvestCompletion === undefined) {
+          context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
+        }
         // Potentially poll more slowly at the end of the feed
         await sleep(
           howLongToSleepAtFeedEnd
@@ -160,13 +161,14 @@ async function baseHarvestRPDE({
         context.responseTimes.push(responseTime);
         // Maintain a buffer of the last 5 items
         if (context.responseTimes.length > 5) context.responseTimes.shift();
-        context.pages += 1;
+        context.pageIndex += 1;
+        // TODO2 call some function to update page number
         context.items += json.items.length;
         delete context.sleepMode;
         if (REQUEST_LOGGING_ENABLED) {
           const kind = json.items && json.items[0] && json.items[0].kind;
           log(
-            `RPDE kind: ${kind}, page: ${context.pages}, length: ${json.items.length
+            `RPDE kind: ${kind}, page: ${context.pageIndex}, length: ${json.items.length
             }, next: '${json.next}'`,
           );
         }
@@ -174,7 +176,7 @@ async function baseHarvestRPDE({
         await processPage(json, feedContextIdentifier, () => isInitialHarvestComplete);
         if (!isInitialHarvestComplete && context._progressbar) {
           context._progressbar.update(context.validatedItems, {
-            pages: context.pages,
+            pages: context.pageIndex,
             responseTime: Math.round(responseTime),
             ...progressFromContext(context),
           });
@@ -211,7 +213,7 @@ async function baseHarvestRPDE({
         // If 404, simply stop polling feed
         if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
         if (multibar) multibar.remove(context._progressbar);
-        feedContextMap.delete(feedContextIdentifier);
+        onFeedNotFoundError(url, headersForThisRequest, error.response.status);
         if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for ${pageDescriptiveIdentifier(url, headersForThisRequest)}, feed will be ignored.`);
         return;
       }

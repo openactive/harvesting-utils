@@ -14,7 +14,7 @@ function createFeedContext(feedContextIdentifier, baseUrl, multibar = null) {
   /** @type {FeedContext} */
   const context = {
     currentPage: baseUrl,
-    pages: 0,
+    pageIndex: 0,
     items: 0,
     responseTimes: [],
     totalItemsQueuedForValidation: 0,

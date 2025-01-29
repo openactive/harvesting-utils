@@ -2,7 +2,7 @@ import { SingleBar } from 'cli-progress';
 
 export type FeedContext = {
   currentPage: string;
-  pages: number;
+  pageIndex: number;
   items: number;
   responseTimes: number[];
   totalItemsQueuedForValidation: number;

@@ -5,7 +5,8 @@
   "main": "index.js",
   "types": "built-types/index.d.ts",
   "scripts": {
-    "test": "eslint && tsc",
+    "test": "npm run lint && tsc",
+    "lint": "eslint \"*.js\" \"src/**/*.js\"",
     "gen-types-clean": "rimraf --glob \"built-types/*\"",
     "gen-types-copy-d-ts-files": "copyfiles --up 1 \"src/**/*.d.ts\" built-types/src",
     "gen-types": "npm run gen-types-clean && tsc && npm run gen-types-copy-d-ts-files",
@@ -48,5 +49,8 @@
     "hooks": {
       "pre-commit": "npm run gen-and-git-add-everything"
     }
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

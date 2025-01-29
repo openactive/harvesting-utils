@@ -11,6 +11,15 @@ export type HarvestRpdeArgs = {
   processPage: RpdePageProcessor;
   onFeedEnd: () => Promise<void>; // Callback which will be called when the feed has reached its end - when all items have been harvested.
   onError: () => void;
+  /**
+   * Callback is called if a feed response is ever 404 or 410.
+   *
+   * The expected behaviour is described in the OpenActive specification:
+   * https://openactive.io/realtime-paged-data-exchange/#http-status-codes.
+   *
+   * So, when this happens, the feed harvesting stops.
+   */
+  onFeedNotFoundError: (reqUrl: string, reqHeaders: Record<string, string>, resStatusCode: number) => void;
   isOrdersFeed: boolean;
   /* The following parameters are optional, and are currently very openactive-broker-microservice specific.
    * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
