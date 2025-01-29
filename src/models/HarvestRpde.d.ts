@@ -69,10 +69,10 @@ export type HarvestRpdeArgs = {
   };
   config?: {
     howLongToSleepAtFeedEnd?: () => number;
-    WAIT_FOR_HARVEST?: boolean;
-    VALIDATE_ONLY?: boolean;
-    VERBOSE?: boolean;
-    ORDER_PROPOSALS_FEED_IDENTIFIER?: string;
+    // WAIT_FOR_HARVEST?: boolean;
+    // VALIDATE_ONLY?: boolean;
+    // VERBOSE?: boolean;
+    // ORDER_PROPOSALS_FEED_IDENTIFIER?: string;
     REQUEST_LOGGING_ENABLED?: boolean;
   };
   options?: {
