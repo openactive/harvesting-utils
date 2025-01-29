@@ -18,16 +18,17 @@ const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
  * @param {HarvestRpdeArgs} args
  * @param {boolean} [isLosslessMode=false] If true, the high-fidelity data TODO
  *
- * @returns {Promise<void>} Only returns if there is a fatal error.
+ * @returns {Promise<import('./models/HarvestRpde').HarvestRpdeResponse>} Only returns if there is a fatal error.
  */
 async function baseHarvestRPDE({
   baseUrl,
   feedContextIdentifier,
   headers,
   processPage,
-  onFeedEnd,
-  onError,
-  onFeedNotFoundError,
+  onReachedEndOfFeed,
+  onRetryDueToHttpError,
+  // onError,
+  // onFeedNotFoundError,
   isOrdersFeed,
   state: { context, startTime } = {
     context: null, startTime: new Date(),
@@ -38,8 +39,19 @@ async function baseHarvestRPDE({
     logError: console.error,
     logErrorDuringHarvest: x => console.error(`\n\n${x}\n\n\n\n\n\n\n\n\n`), // Ensure messages are displayed above the multibar output
   },
-  config: { howLongToSleepAtFeedEnd, WAIT_FOR_HARVEST, VALIDATE_ONLY, VERBOSE, ORDER_PROPOSALS_FEED_IDENTIFIER, REQUEST_LOGGING_ENABLED } = {
-    WAIT_FOR_HARVEST: true, VALIDATE_ONLY: false, VERBOSE: false, ORDER_PROPOSALS_FEED_IDENTIFIER: null, REQUEST_LOGGING_ENABLED: false,
+  config: {
+    howLongToSleepAtFeedEnd,
+    // WAIT_FOR_HARVEST,
+    // VALIDATE_ONLY,
+    // VERBOSE,
+    // ORDER_PROPOSALS_FEED_IDENTIFIER,
+    REQUEST_LOGGING_ENABLED,
+  } = {
+    // WAIT_FOR_HARVEST: true,
+    // VALIDATE_ONLY: false,
+    // VERBOSE: false,
+    // ORDER_PROPOSALS_FEED_IDENTIFIER: null,
+    REQUEST_LOGGING_ENABLED: false,
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
 }, isLosslessMode = false) {
@@ -50,7 +62,7 @@ async function baseHarvestRPDE({
   const pageDescriptiveIdentifier = (url, thisHeaders) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(thisHeaders)})`;
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
-  // TODO3 remove context after we've figured out what it does
+  // TODO2 remove context after we've figured out what it does
   if (!context) context = createFeedContext(feedContextIdentifier, baseUrl, multibar);
 
   let url = baseUrl;
@@ -100,8 +112,16 @@ async function baseHarvestRPDE({
         stopMultibar();
         logErrorDuringHarvest(`\nFATAL ERROR: ${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
         // TODO: Provide context to the error callback
-        onError();
-        return;
+        return {
+          error: {
+            type: 'unexpected-non-http-error',
+            reqUrl: url,
+            reqHeaders: headersForThisRequest,
+            error: new Error(`${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`),
+          },
+        };
+        // onError();
+        // return;
       }
 
       // Low fidelity data must be used for validation as validator cannot deal with BigInts.
@@ -125,8 +145,16 @@ async function baseHarvestRPDE({
         stopMultibar();
         logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on ${pageDescriptiveIdentifier(url, headersForThisRequest)}:\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
         // TODO: Provide context to the error callback
-        onError();
-        return;
+        return {
+          error: {
+            type: 'rpde-validation-error',
+            reqUrl: url,
+            reqHeaders: headersForThisRequest,
+            rpdeValidationErrors,
+          },
+        };
+        // onError();
+        // return;
       }
 
       const json = isLosslessMode ? response.data.highFidelityData : response.data.lowFidelityData;
@@ -144,9 +172,7 @@ async function baseHarvestRPDE({
           }
           isInitialHarvestComplete = true;
         }
-        if (WAIT_FOR_HARVEST || VALIDATE_ONLY) {
-          await onFeedEnd();
-        } else if (VERBOSE) log(`Sleep mode poll for RPDE feed "${url}"`);
+        await onReachedEndOfFeed(url);
         context.sleepMode = true;
         if (context.timeToHarvestCompletion === undefined) {
           context.timeToHarvestCompletion = millisToMinutesAndSeconds((new Date()).getTime() - startTime.getTime());
@@ -186,49 +212,112 @@ async function baseHarvestRPDE({
       }
       numberOfRetries = 0;
     } catch (error) {
-      // Do not wait for the Orders feed if failing (as it might be an auth error)
-      if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && isOrdersFeed) {
-        onFeedEnd();
-      }
-      // TODO This code is unfortunately coupled with code in Broker Microservice (https://github.com/openactive/openactive-test-suite/tree/master/packages/openactive-broker-microservice),
-      // in which a "FatalError" can be thrown by a `processPage(..)` callback. This should be decoupled.
-      if (error.name === 'FatalError') {
-        // If a fatal error, quit the application immediately
-        stopMultibar();
-        logErrorDuringHarvest(`\nFATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n`);
-        // TODO: Provide context to the error callback
-        onError();
-        return;
-      }
+      // ~~~~ THE NEW STUFF ~~~~
       if (!error.isAxiosError) {
         // If a non-axios error, quit the application immediately
         stopMultibar();
         logErrorDuringHarvest(`FATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`);
         // TODO: Provide context to the error callback
-        onError();
-        return;
+        return {
+          error: {
+            type: 'unexpected-non-http-error',
+            reqUrl: url,
+            reqHeaders: headersForThisRequest,
+            error,
+          },
+        };
+        // await onUnexpectedError(url, headersForThisRequest, error);
+        // return;
       }
       if (error.response?.status === 404 || error.response?.status === 410) {
-        // As per https://openactive.io/realtime-paged-data-exchange/#http-status-codes, consider this endpoint in an error state and do not retry
-        // If 404, simply stop polling feed
-        if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && !isOrdersFeed) { await onFeedEnd(); }
+        // As per
+        // https://openactive.io/realtime-paged-data-exchange/#http-status-codes,
+        // consider this endpoint in an error state and do not retry. If 404,
+        // simply stop polling feed
         if (multibar) multibar.remove(context._progressbar);
-        onFeedNotFoundError(url, headersForThisRequest, error.response.status);
-        if (feedContextIdentifier.indexOf(ORDER_PROPOSALS_FEED_IDENTIFIER) === -1) logErrorDuringHarvest(`Not Found error for ${pageDescriptiveIdentifier(url, headersForThisRequest)}, feed will be ignored.`);
-        return;
+        return {
+          error: {
+            type: 'feed-not-found',
+            reqUrl: url,
+            reqHeaders: headersForThisRequest,
+            resStatusCode: error.response.status,
+            error,
+          },
+        };
+        // await onFeedNotFoundError(url, headersForThisRequest, error.response.status, error);
+        // return;
       }
+      // Otherwise, it's an HTTP error, for which we'll attempt to retry
       logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for ${pageDescriptiveIdentifier(url, headersForThisRequest)} (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data?.lowFidelityData === 'object' ? JSON.stringify(error.response.data.lowFidelityData, null, 2) : error.response.data}` : ''}`);
       // Force retry, after a delay, up to 12 times
       if (numberOfRetries < 12) {
         numberOfRetries += 1;
-        await sleep(5000);
+        const delay = 5000;
+        await onRetryDueToHttpError(url, headersForThisRequest, error.response.status, error, delay, numberOfRetries);
+        await sleep(delay);
       } else {
         stopMultibar();
         logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for ${pageDescriptiveIdentifier(url, headersForThisRequest)}\n`);
-        // TODO: Provide context to the error callback
-        onError();
-        return;
+        return {
+          error: {
+            type: 'retry-limit-exceeded-for-http-error',
+            reqUrl: url,
+            reqHeaders: headersForThisRequest,
+            resStatusCode: error.response.status,
+            error,
+            numberOfRetries,
+          },
+        };
+        // await onRetryLimitExceededForHttpError(url, headersForThisRequest, error.response.status, error, numberOfRetries);
+        // // TODO: Provide context to the error callback
+        // onError();
+        // return;
       }
+      // // ~~~~ THE OLD STUFF ~~~~
+      // // TODO3 i think this needs to be a different callback?
+      // // Do not wait for the Orders feed if failing (as it might be an auth error)
+      // if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && isOrdersFeed) {
+      //   onReachedEndOfFeed();
+      // }
+      // // TODO This code is unfortunately coupled with code in Broker Microservice (https://github.com/openactive/openactive-test-suite/tree/master/packages/openactive-broker-microservice),
+      // // in which a "FatalError" can be thrown by a `processPage(..)` callback. This should be decoupled.
+      // if (error.name === 'FatalError') {
+      //   // If a fatal error, quit the application immediately
+      //   stopMultibar();
+      //   logErrorDuringHarvest(`\nFATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n`);
+      //   // TODO: Provide context to the error callback
+      //   onError();
+      //   return;
+      // }
+      // if (!error.isAxiosError) {
+      //   // If a non-axios error, quit the application immediately
+      //   stopMultibar();
+      //   logErrorDuringHarvest(`FATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`);
+      //   // TODO: Provide context to the error callback
+      //   onError();
+      //   return;
+      // }
+      // if (error.response?.status === 404 || error.response?.status === 410) {
+      //   // As per
+      //   // https://openactive.io/realtime-paged-data-exchange/#http-status-codes,
+      //   // consider this endpoint in an error state and do not retry. If 404,
+      //   // simply stop polling feed
+      //   if (multibar) multibar.remove(context._progressbar);
+      //   await onFeedNotFoundError(url, headersForThisRequest, error.response.status);
+      //   return;
+      // }
+      // logErrorDuringHarvest(`Error ${error?.response?.status ?? 'without response'} for ${pageDescriptiveIdentifier(url, headersForThisRequest)} (attempt ${numberOfRetries}): ${error.message}.${error.response ? `\n\nResponse: ${typeof error.response.data?.lowFidelityData === 'object' ? JSON.stringify(error.response.data.lowFidelityData, null, 2) : error.response.data}` : ''}`);
+      // // Force retry, after a delay, up to 12 times
+      // if (numberOfRetries < 12) {
+      //   numberOfRetries += 1;
+      //   await sleep(5000);
+      // } else {
+      //   stopMultibar();
+      //   logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for ${pageDescriptiveIdentifier(url, headersForThisRequest)}\n`);
+      //   // TODO: Provide context to the error callback
+      //   onError();
+      //   return;
+      // }
     }
   }
 }
@@ -236,7 +325,7 @@ async function baseHarvestRPDE({
 /**
  * @param {HarvestRpdeArgs} args
  *
- * @returns {Promise<void>} Only returns if there is a fatal error.
+ * @returns {Promise<import('./models/HarvestRpde').HarvestRpdeResponse>} Only returns if there is a fatal error.
  */
 function harvestRPDE(args) {
   return baseHarvestRPDE(args, false);
@@ -245,7 +334,7 @@ function harvestRPDE(args) {
 /**
  * @param {HarvestRpdeArgs} args
  *
- * @returns {Promise<void>} Only returns if there is a fatal error.
+ * @returns {Promise<import('./models/HarvestRpde').HarvestRpdeResponse>} Only returns if there is a fatal error.
  */
 function harvestRPDELossless(args) {
   return baseHarvestRPDE(args, true);
