@@ -41,7 +41,6 @@
   "dependencies": {
     "@openactive/rpde-validator": "^2.0.19",
     "axios": "^1.6.7",
-    "cli-progress": "^3.12.0",
     "lodash": "^4.17.21",
     "lossless-json": "^4.0.1"
   },

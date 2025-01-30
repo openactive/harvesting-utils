@@ -89,7 +89,6 @@ export type HarvestRpdeArgs = {
     REQUEST_LOGGING_ENABLED?: boolean;
   };
   options?: {
-    multibar?: import("cli-progress").MultiBar;
     pauseResume?: { waitIfPaused: () => Promise<void> };
   };
 };

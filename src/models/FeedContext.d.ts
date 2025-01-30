@@ -1,5 +1,3 @@
-import { SingleBar } from 'cli-progress';
-
 export type FeedContext = {
   currentPage: string;
   pageIndex: number;
@@ -9,6 +7,4 @@ export type FeedContext = {
   validatedItems: number;
   sleepMode?: boolean;
   timeToHarvestCompletion?: string;
-
-  _progressbar?: SingleBar; // Underscore prefix hides this value from /status page
 };

@@ -1,5 +1,5 @@
 const { harvestRPDE, harvestRPDELossless } = require('./src/harvest-rpde');
-const { createFeedContext, progressFromContext } = require('./src/feed-context-utils');
+const { createFeedContext } = require('./src/feed-context-utils');
 
 /**
  * @typedef {import('./src/harvest-rpde').RpdePageProcessor} RpdePageProcessor
@@ -11,5 +11,4 @@ module.exports = {
   harvestRPDE,
   harvestRPDELossless,
   createFeedContext,
-  progressFromContext,
 };
