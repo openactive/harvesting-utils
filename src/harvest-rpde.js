@@ -46,9 +46,6 @@ async function baseHarvestRPDE({
   const pageDescriptiveIdentifier = (url, thisHeaders) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(thisHeaders)})`;
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
-  // TODO2 make context something that is only internal to this lib. And it
-  // shouldn't take multibar. It can be exposed to the client via the callbacks,
-  // but the client and lib should not be expected to both mutate this object!
   const context = overrideContext || createFeedContext(baseUrl);
 
   let url = baseUrl;
@@ -59,9 +56,6 @@ async function baseHarvestRPDE({
   // Harvest forever, until a 404 is encountered
   for (; ;) {
     if (optionallyWaitBeforeNextRequest) await optionallyWaitBeforeNextRequest();
-    // TODO3 put in broker
-    // // If harvesting is paused, block using the mute
-    // if (pauseResume) await pauseResume.waitIfPaused();
 
     const headersForThisRequest = await headers();
 
