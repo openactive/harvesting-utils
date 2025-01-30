@@ -3,7 +3,7 @@ const { performance } = require('perf_hooks');
 const { FeedPageChecker } = require('@openactive/rpde-validator');
 const sleep = require('util').promisify(setTimeout);
 
-const { createFeedContext, progressFromContext } = require('./feed-context-utils');
+const { createFeedContext } = require('./feed-context-utils');
 const { jsonParseAllowingBigInts } = require('./utils');
 
 const DEFAULT_HOW_LONG_TO_SLEEP_AT_FEED_END = 500;
@@ -26,6 +26,7 @@ async function baseHarvestRPDE({
   headers,
   processPage,
   onReachedEndOfFeed,
+  onProcessedPage,
   onRetryDueToHttpError,
   // onError,
   // onFeedNotFoundError,
@@ -55,14 +56,16 @@ async function baseHarvestRPDE({
   },
   options: { multibar, pauseResume } = { multibar: null, pauseResume: null },
 }, isLosslessMode = false) {
-  const stopMultibar = () => {
-    // TODO: To prevent extraneous output, ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
-    if (multibar) multibar.stop();
-  };
+  // const stopMultibar = () => {
+  //   // TODO: To prevent extraneous output, ensure that multibar.stop is only called if the multibar is already active (e.g. by wrapping the multibar to allow us to set it to null when not in use)
+  //   if (multibar) multibar.stop();
+  // };
   const pageDescriptiveIdentifier = (url, thisHeaders) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(thisHeaders)})`;
   let isInitialHarvestComplete = false;
   let numberOfRetries = 0;
-  // TODO2 remove context after we've figured out what it does
+  // TODO2 make context something that is only internal to this lib. And it
+  // shouldn't take multibar. It can be exposed to the client via the callbacks,
+  // but the client and lib should not be expected to both mutate this object!
   if (!context) context = createFeedContext(feedContextIdentifier, baseUrl, multibar);
 
   let url = baseUrl;
@@ -109,15 +112,18 @@ async function baseHarvestRPDE({
       const responseTime = timerEnd - timerStart;
 
       if (!response.data || typeof response.data !== 'object' || !response.data.lowFidelityData || typeof response.data.lowFidelityData !== 'object') {
-        stopMultibar();
-        logErrorDuringHarvest(`\nFATAL ERROR: ${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
-        // TODO: Provide context to the error callback
+        // // TODO3 stop multibar on unexpcted-non-http-error
+        // stopMultibar();
+        // logErrorDuringHarvest(`\nFATAL ERROR: ${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
+        // // TODO: Provide context to the error callback
+        const error = new Error(`${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`);
         return {
           error: {
             type: 'unexpected-non-http-error',
             reqUrl: url,
             reqHeaders: headersForThisRequest,
-            error: new Error(`${pageDescriptiveIdentifier(url, headersForThisRequest)} with response code ${response.status} is not valid JSON:\n\nResponse: ${response.data}`),
+            error,
+            message: error.message,
           },
         };
         // onError();
@@ -142,9 +148,10 @@ async function baseHarvestRPDE({
       });
 
       if (rpdeValidationErrors.length > 0) {
-        stopMultibar();
-        logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on ${pageDescriptiveIdentifier(url, headersForThisRequest)}:\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
-        // TODO: Provide context to the error callback
+        // // TODO3 stop multibar on rpde-validation-error
+        // stopMultibar();
+        // logErrorDuringHarvest(`\nFATAL ERROR: RPDE Validation Error(s) found on ${pageDescriptiveIdentifier(url, headersForThisRequest)}:\n${rpdeValidationErrors.map(error => `- ${error.message.split('\n')[0]}`).join('\n')}\n`);
+        // // TODO: Provide context to the error callback
         return {
           error: {
             type: 'rpde-validation-error',
@@ -160,19 +167,26 @@ async function baseHarvestRPDE({
       const json = isLosslessMode ? response.data.highFidelityData : response.data.lowFidelityData;
       context.currentPage = url;
       if (json.next === url && json.items.length === 0) {
-        if (!isInitialHarvestComplete) {
-          if (context._progressbar) {
-            context._progressbar.update(context.validatedItems, {
-              pages: context.pageIndex,
-              responseTime: Math.round(responseTime),
-              ...progressFromContext(context),
-              status: context.items === 0 ? 'Harvesting Complete (No items to validate)' : 'Harvesting Complete, Validating...',
-            });
-            context._progressbar.setTotal(context.totalItemsQueuedForValidation);
-          }
-          isInitialHarvestComplete = true;
-        }
-        await onReachedEndOfFeed(url);
+        // // TODO3 move this into onReachedEndOfFeed & add isInitialHarvestComplete, feedContext, responseTime
+        // if (!isInitialHarvestComplete) {
+        //   if (context._progressbar) {
+        //     context._progressbar.update(context.validatedItems, {
+        //       pages: context.pageIndex,
+        //       responseTime: Math.round(responseTime),
+        //       ...progressFromContext(context),
+        //       status: context.items === 0 ? 'Harvesting Complete (No items to validate)' : 'Harvesting Complete, Validating...',
+        //     });
+        //     context._progressbar.setTotal(context.totalItemsQueuedForValidation);
+        //   }
+        //   isInitialHarvestComplete = true;
+        // }
+        await onReachedEndOfFeed({
+          lastPageUrl: url,
+          isInitialHarvestComplete,
+          // feedContext: context,
+          responseTime,
+        });
+        isInitialHarvestComplete = true;
         // Potentially poll more slowly at the end of the feed
         await sleep(
           howLongToSleepAtFeedEnd
@@ -196,30 +210,37 @@ async function baseHarvestRPDE({
         }
         // eslint-disable-next-line no-loop-func
         await processPage(json, feedContextIdentifier, () => isInitialHarvestComplete);
-        if (!isInitialHarvestComplete && context._progressbar) {
-          context._progressbar.update(context.validatedItems, {
-            pages: context.pageIndex,
-            responseTime: Math.round(responseTime),
-            ...progressFromContext(context),
-          });
-          context._progressbar.setTotal(context.totalItemsQueuedForValidation);
-        }
+        await onProcessedPage({
+          reqUrl: url,
+          isInitialHarvestComplete,
+          responseTime,
+        });
+        // // TODO3 onProcessedPage(isInitialHarvestComplete, feedContext)
+        // if (!isInitialHarvestComplete && context._progressbar) {
+        //   context._progressbar.update(context.validatedItems, {
+        //     pages: context.pageIndex,
+        //     responseTime: Math.round(responseTime),
+        //     ...progressFromContext(context),
+        //   });
+        //   context._progressbar.setTotal(context.totalItemsQueuedForValidation);
+        // }
         url = json.next;
       }
       numberOfRetries = 0;
     } catch (error) {
       // ~~~~ THE NEW STUFF ~~~~
       if (!error.isAxiosError) {
-        // If a non-axios error, quit the application immediately
-        stopMultibar();
-        logErrorDuringHarvest(`FATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`);
-        // TODO: Provide context to the error callback
+        // // If a non-axios error, quit the application immediately
+        // stopMultibar();
+        // logErrorDuringHarvest(`FATAL ERROR for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`);
+        // // TODO: Provide context to the error callback
         return {
           error: {
             type: 'unexpected-non-http-error',
             reqUrl: url,
             reqHeaders: headersForThisRequest,
             error,
+            message: `Error for ${pageDescriptiveIdentifier(url, headersForThisRequest)}: ${error.message}\n${error.stack}`,
           },
         };
         // await onUnexpectedError(url, headersForThisRequest, error);
@@ -230,7 +251,8 @@ async function baseHarvestRPDE({
         // https://openactive.io/realtime-paged-data-exchange/#http-status-codes,
         // consider this endpoint in an error state and do not retry. If 404,
         // simply stop polling feed
-        if (multibar) multibar.remove(context._progressbar);
+        // // TODO3 put this into feed-not-found callback in Broker
+        // if (multibar) multibar.remove(context._progressbar);
         return {
           error: {
             type: 'feed-not-found',
@@ -252,8 +274,9 @@ async function baseHarvestRPDE({
         await onRetryDueToHttpError(url, headersForThisRequest, error.response.status, error, delay, numberOfRetries);
         await sleep(delay);
       } else {
-        stopMultibar();
-        logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for ${pageDescriptiveIdentifier(url, headersForThisRequest)}\n`);
+        // // TODO3 stop multibar on retry-limit-exceeded-for-http-error
+        // stopMultibar();
+        // logErrorDuringHarvest(`\nFATAL ERROR: Retry limit exceeded for ${pageDescriptiveIdentifier(url, headersForThisRequest)}\n`);
         return {
           error: {
             type: 'retry-limit-exceeded-for-http-error',
@@ -270,7 +293,6 @@ async function baseHarvestRPDE({
         // return;
       }
       // // ~~~~ THE OLD STUFF ~~~~
-      // // TODO3 i think this needs to be a different callback?
       // // Do not wait for the Orders feed if failing (as it might be an auth error)
       // if ((WAIT_FOR_HARVEST || VALIDATE_ONLY) && isOrdersFeed) {
       //   onReachedEndOfFeed();

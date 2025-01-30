@@ -33,6 +33,7 @@ function createFeedContext(feedContextIdentifier, baseUrl, multibar = null) {
   return context;
 }
 
+// TODO2 move this into Broker
 /**
  * @param {FeedContext} c
  */

@@ -17,7 +17,21 @@ export type HarvestRpdeArgs = {
    * This is not the end of harvesting, as the feed will continue to be polled
    * afterwards for updates.
    */
-  onReachedEndOfFeed: (lastPageUrl: string) => Promise<void>;
+  onReachedEndOfFeed: ({
+    lastPageUrl: string,
+    isInitialHarvestComplete: boolean,
+    // feedContext: FeedContext,
+    responseTime: number,
+  }) => Promise<void>;
+  /**
+   * Callback is called when a page (that is NOT the last page - for the last
+   * page, see onReachedEndOfFeed) has been processed.
+   */
+  onProcessedPage: ({
+    reqUrl: string,
+    isInitialHarvestComplete: boolean,
+    responseTime: number,
+  }) => Promise<void>;
   onRetryDueToHttpError: (
     reqUrl: string,
     reqHeaders: Record<string, string>,
@@ -86,6 +100,7 @@ export type HarvestRpdeResponse = {
     reqUrl: string;
     reqHeaders: Record<string, string>;
     error: Error;
+    message: string;
   } | {
     type: 'feed-not-found';
     reqUrl: string;
