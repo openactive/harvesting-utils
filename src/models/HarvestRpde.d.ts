@@ -51,15 +51,6 @@ export type HarvestRpdeArgs = {
     responseTime: number,
   }) => Promise<void>;
   /**
-   * Callback is called when a page (that is NOT the last page - for the last
-   * page, see onReachedEndOfFeed) has been processed.
-   */
-  onProcessedPage?: ({
-    reqUrl: string,
-    isInitialHarvestComplete: boolean,
-    responseTime: number,
-  }) => Promise<void>;
-  /**
    * Callback is called when a request to the feed fails due to an HTTP error.
    *
    * Note that harvester will then retry the request afterwards, but you may
