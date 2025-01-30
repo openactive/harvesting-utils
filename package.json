@@ -39,7 +39,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@openactive/rpde-validator": "^3.0.0",
+    "@openactive/rpde-validator": "^3.0.2",
     "axios": "^1.6.7",
     "lodash": "^4.17.21",
     "lossless-json": "^4.0.1"
@@ -50,6 +50,6 @@
     }
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18.17.1"
   }
 }
