@@ -1,28 +1,11 @@
-// TODO3 check this
 const { harvestRPDE } = require('..');
 
 function run() {
   // This is the URL of the RPDE feed
-  const baseUrl = 'https://reference-implementation.openactive.io/feeds/scheduled-sessions';
+  const baseUrl = 'https://reference-implementation.openactive.io/feeds/facility-uses';
 
   // This is the feed context identifier
-  const feedContextIdentifier = 'ScheduledSessions';
-
-  // This is the function which will be called for each page of the RPDE feed
-  const processPage = async (rpdePage, feedIdentifier) => {
-    console.log(`${feedIdentifier}: Processing page ${rpdePage.next}`);
-  };
-
-  // This is the function which will be called when the feed has reached its end
-  const onFeedEnd = async () => {
-    console.log('Feed has reached its end');
-    process.exit(0);
-  };
-
-  const onError = () => {
-    console.log('Error occurred');
-    process.exit(1);
-  };
+  const feedContextIdentifier = 'FacilityUses';
 
   // This is the function which will be called to get the headers for the RPDE feed
   const headers = async () => ({});
@@ -35,8 +18,25 @@ function run() {
     baseUrl,
     feedContextIdentifier,
     headers,
-    processPage,
+    processPage: async ({
+      rpdePage,
+      reqUrl,
+    }) => {
+      console.log(`${feedContextIdentifier}: Processing page @ ${reqUrl}. Items: ${rpdePage.items.length}`);
+    },
+    onReachedEndOfFeed: async () => {
+      console.log('Feed has reached its end');
+      process.exit(0);
+    },
+    onRetryDueToHttpError: async (reqUrl, reqHeaders, resStatusCode, error) => {
+      console.error(`Retrying @ ${reqUrl} due to HTTP error ${resStatusCode}:`, error.message);
+    },
     isOrdersFeed,
+  }).then(({ error }) => {
+    if (error) {
+      console.error('FATAL ERROR:', error);
+      process.exit(1);
+    }
   });
 }
 

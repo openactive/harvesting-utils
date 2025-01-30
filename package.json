@@ -6,7 +6,7 @@
   "types": "built-types/index.d.ts",
   "scripts": {
     "test": "npm run lint && tsc",
-    "lint": "eslint \"*.js\" \"src/**/*.js\"",
+    "lint": "eslint \"*.js\" \"examples/**/*.js\" \"src/**/*.js\"",
     "gen-types-clean": "rimraf --glob \"built-types/*\"",
     "gen-types-copy-d-ts-files": "copyfiles --up 1 \"src/**/*.d.ts\" built-types/src",
     "gen-types": "npm run gen-types-clean && tsc && npm run gen-types-copy-d-ts-files",
