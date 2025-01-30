@@ -26,7 +26,6 @@ async function baseHarvestRPDE({
   headers,
   processPage,
   onReachedEndOfFeed,
-  onProcessedPage,
   onRetryDueToHttpError,
   optionallyWaitBeforeNextRequest,
   isOrdersFeed,
@@ -168,11 +167,12 @@ async function baseHarvestRPDE({
             }, next: '${json.next}'`,
           );
         }
-        // eslint-disable-next-line no-loop-func
-        await processPage(json, feedContextIdentifier, () => isInitialHarvestComplete);
-        await onProcessedPage({
+        await processPage({
+          rpdePage: json,
+          feedContextIdentifier,
+          // eslint-disable-next-line no-loop-func
+          isInitialHarvestComplete: () => isInitialHarvestComplete,
           reqUrl: url,
-          isInitialHarvestComplete,
           responseTime,
         });
         url = json.next;
@@ -211,7 +211,16 @@ async function baseHarvestRPDE({
       if (numberOfRetries < 12) {
         numberOfRetries += 1;
         const delay = 5000;
-        await onRetryDueToHttpError(url, headersForThisRequest, error.response.status, error, delay, numberOfRetries);
+        if (onRetryDueToHttpError) {
+          await onRetryDueToHttpError(
+            url,
+            headersForThisRequest,
+            error.response.status,
+            error,
+            delay,
+            numberOfRetries,
+          );
+        }
         await sleep(delay);
       } else {
         return {

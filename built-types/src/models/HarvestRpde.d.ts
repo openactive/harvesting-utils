@@ -19,10 +19,19 @@ export type HarvestRpdeArgs = {
    */
   headers: () => Promise<{ [key: string]: string }>;
   /**
-   * Callback is called for each new item in each page of the feed. Use this to
-   * process each item e.g. store it, validate it, etc.
+   * Callback is called when a page (that is NOT the last page - for the last
+   * page, see onReachedEndOfFeed) has been processed.
+   *
+   * It contains all the items in the page. Use this to process each item e.g.
+   * store it, validate it, etc.
    */
-  processPage: RpdePageProcessor;
+  processPage: (args: {
+    rpdePage: any,
+    feedContextIdentifier: string;
+    isInitialHarvestComplete: () => boolean;
+    reqUrl: string;
+    responseTime: number;
+  }) => Promise<void>;
   /**
    * Callback is called when the feed's [last
    * page](https://openactive.io/realtime-paged-data-exchange/#last-page-definition)
@@ -45,7 +54,7 @@ export type HarvestRpdeArgs = {
    * Callback is called when a page (that is NOT the last page - for the last
    * page, see onReachedEndOfFeed) has been processed.
    */
-  onProcessedPage: ({
+  onProcessedPage?: ({
     reqUrl: string,
     isInitialHarvestComplete: boolean,
     responseTime: number,
@@ -56,7 +65,7 @@ export type HarvestRpdeArgs = {
    * Note that harvester will then retry the request afterwards, but you may
    * e.g. want to log the error here.
    */
-  onRetryDueToHttpError: (
+  onRetryDueToHttpError?: (
     reqUrl: string,
     reqHeaders: Record<string, string>,
     resStatusCode: number,

@@ -1,3 +1,4 @@
+// TODO3 check this
 const { harvestRPDE } = require('..');
 
 function run() {
@@ -35,8 +36,6 @@ function run() {
     feedContextIdentifier,
     headers,
     processPage,
-    onFeedEnd,
-    onError,
     isOrdersFeed,
   });
 }
