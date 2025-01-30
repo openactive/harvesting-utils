@@ -5,7 +5,8 @@
   "main": "index.js",
   "types": "built-types/index.d.ts",
   "scripts": {
-    "test": "eslint && tsc",
+    "test": "npm run lint && tsc",
+    "lint": "eslint \"*.js\" \"examples/**/*.js\" \"src/**/*.js\"",
     "gen-types-clean": "rimraf --glob \"built-types/*\"",
     "gen-types-copy-d-ts-files": "copyfiles --up 1 \"src/**/*.d.ts\" built-types/src",
     "gen-types": "npm run gen-types-clean && tsc && npm run gen-types-copy-d-ts-files",
@@ -40,7 +41,6 @@
   "dependencies": {
     "@openactive/rpde-validator": "^2.0.19",
     "axios": "^1.6.7",
-    "cli-progress": "^3.12.0",
     "lodash": "^4.17.21",
     "lossless-json": "^4.0.1"
   },
@@ -48,5 +48,8 @@
     "hooks": {
       "pre-commit": "npm run gen-and-git-add-everything"
     }
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
