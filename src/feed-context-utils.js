@@ -5,11 +5,10 @@
 /* TODO[suggestion] put FeedContext into a class so that it controls access to itself? And so that all it's logic
 (e.g. progressbar updating stuff) can be in one place? */
 /**
- * @param {string} feedContextIdentifier
  * @param {string} baseUrl
  * @returns {FeedContext}
  */
-function createFeedContext(feedContextIdentifier, baseUrl) {
+function createFeedContext(baseUrl) {
   /** @type {FeedContext} */
   const context = {
     currentPage: baseUrl,

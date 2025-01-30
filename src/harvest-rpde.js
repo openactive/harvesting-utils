@@ -54,7 +54,7 @@ async function baseHarvestRPDE({
   // TODO2 make context something that is only internal to this lib. And it
   // shouldn't take multibar. It can be exposed to the client via the callbacks,
   // but the client and lib should not be expected to both mutate this object!
-  if (!context) context = createFeedContext(feedContextIdentifier, baseUrl);
+  if (!context) context = createFeedContext(baseUrl);
 
   let url = baseUrl;
 
