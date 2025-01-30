@@ -28,12 +28,9 @@ async function baseHarvestRPDE({
   onReachedEndOfFeed,
   onProcessedPage,
   onRetryDueToHttpError,
-  // onError,
-  // onFeedNotFoundError,
+  optionallyWaitBeforeNextRequest,
   isOrdersFeed,
-  state: { context } = {
-    context: null,
-  },
+  overrideContext,
   // eslint-disable-next-line no-unused-vars
   loggingFns: { log, logError, logErrorDuringHarvest } = {
     log: console.log,
@@ -46,7 +43,6 @@ async function baseHarvestRPDE({
   } = {
     REQUEST_LOGGING_ENABLED: false,
   },
-  options: { pauseResume } = { pauseResume: null },
 }, isLosslessMode = false) {
   const pageDescriptiveIdentifier = (url, thisHeaders) => `RPDE feed ${feedContextIdentifier} page "${url}" (request headers: ${JSON.stringify(thisHeaders)})`;
   let isInitialHarvestComplete = false;
@@ -54,7 +50,7 @@ async function baseHarvestRPDE({
   // TODO2 make context something that is only internal to this lib. And it
   // shouldn't take multibar. It can be exposed to the client via the callbacks,
   // but the client and lib should not be expected to both mutate this object!
-  if (!context) context = createFeedContext(baseUrl);
+  const context = overrideContext || createFeedContext(baseUrl);
 
   let url = baseUrl;
 
@@ -63,8 +59,10 @@ async function baseHarvestRPDE({
 
   // Harvest forever, until a 404 is encountered
   for (; ;) {
-    // If harvesting is paused, block using the mutex
-    if (pauseResume) await pauseResume.waitIfPaused();
+    if (optionallyWaitBeforeNextRequest) await optionallyWaitBeforeNextRequest();
+    // TODO3 put in broker
+    // // If harvesting is paused, block using the mute
+    // if (pauseResume) await pauseResume.waitIfPaused();
 
     const headersForThisRequest = await headers();
 

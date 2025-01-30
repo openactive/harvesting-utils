@@ -6,16 +6,34 @@ import { RpdePageProcessor } from './RpdePageProcessor';
 // string or number depending on if it is a lossless harvest or not.
 
 export type HarvestRpdeArgs = {
-  baseUrl: string; // TODO: rename to feedUrl
+  /**
+   * Feed URL to harvest
+   */
+  baseUrl: string;
+  /**
+   * Unique identifier for feed within the dataset eg ScheduledSession
+   */
   feedContextIdentifier: string;
+  /**
+   * Function that returns headers needed to make a request to the feed URL
+   */
   headers: () => Promise<{ [key: string]: string }>;
+  /**
+   * Callback is called for each new item in each page of the feed. Use this to
+   * process each item e.g. store it, validate it, etc.
+   */
   processPage: RpdePageProcessor;
   /**
-   * Callback is called when the feed has (successfully) reached its end - when
-   * all items have been harvested.
+   * Callback is called when the feed's [last
+   * page](https://openactive.io/realtime-paged-data-exchange/#last-page-definition)
+   * has been (successfully) reached - and so when all items in the feed have
+   * been processed..
    *
    * This is not the end of harvesting, as the feed will continue to be polled
    * afterwards for updates.
+   *
+   * This function may be called multiple times if new items are added after the
+   * first time `harvestRPDE()` reaches the last page.
    */
   onReachedEndOfFeed: ({
     lastPageUrl: string,
@@ -32,6 +50,12 @@ export type HarvestRpdeArgs = {
     isInitialHarvestComplete: boolean,
     responseTime: number,
   }) => Promise<void>;
+  /**
+   * Callback is called when a request to the feed fails due to an HTTP error.
+   *
+   * Note that harvester will then retry the request afterwards, but you may
+   * e.g. want to log the error here.
+   */
   onRetryDueToHttpError: (
     reqUrl: string,
     reqHeaders: Record<string, string>,
@@ -42,55 +66,52 @@ export type HarvestRpdeArgs = {
     /** Number of retries that have been attempted so far on this request */
     numberOfRetries: number
   ) => Promise<void>;
-  // /**
-  //  * Callback is called when the retry limit is exceeded for an HTTP error.
-  //  *
-  //  * At this point, the feed harvesting has stopped
-  //  */
-  // onRetryLimitExceededForHttpError: (
-  //   url: string,
-  //   headers: Record<string, string>,
-  //   error: AxiosError,
-  //   numberOfRetries: number
-  // ) => Promise<void>;
-  // onError: () => void;
-  // /**
-  //  * Callback is called if a feed response is ever 404 or 410.
-  //  *
-  //  * The expected behaviour is described in the OpenActive specification:
-  //  * https://openactive.io/realtime-paged-data-exchange/#http-status-codes.
-  //  *
-  //  * So, when this happens, the feed harvesting stops.
-  //  */
-  // onFeedNotFoundError: (
-  //   reqUrl: string,
-  //   reqHeaders: Record<string, string>,
-  //   resStatusCode: number
-  // ) => Promise<void>;
-  isOrdersFeed: boolean;
-  /* The following parameters are optional, and are currently very openactive-broker-microservice specific.
-   * In the future these should be removed or abstracted away. This comment highlights some potential fixes:
-   * https://github.com/openactive/harvesting-utils/pull/1/files#r1499134370
+  /**
+   * This callback (if provided) is called before each new request to the feed.
+   *
+   * This can be useful for these scenarios:
+   *
+   * 1. If the feed has a rate limit.
+   * 2. To pause harvesting.
    */
-  state?: {
-    context?: FeedContext; // TODO: rename to feedContext
-  };
+  optionallyWaitBeforeNextRequest?: () => Promise<void>;
+  /**
+   * Is the feed an Orders feed?
+   */
+  isOrdersFeed: boolean;
+  /**
+   * Optional logging functions. Defaults will be used if not provided.
+   */
   loggingFns?: {
+    /** Normal logging. Default: console.log */
     log?: (message?: any, ...optionalParams: any[]) => void;
+    /** Error logging. Default: console.error */
     logError?: (message?: any, ...optionalParams: any[]) => void;
+    /** Error logging during the harvest. Default: console.error */
     logErrorDuringHarvest?: (message?: any, ...optionalParams: any[]) => void;
   };
   config?: {
+    /**
+     * How long to wait, in milliseconds, before re-polling a feed after
+     * fetching the last page ([RPDE
+     * spec](https://openactive.io/realtime-paged-data-exchange/#polling-for-near-real-time-updates)).
+     * Default: `() => 500`
+     */
     howLongToSleepAtFeedEnd?: () => number;
-    // WAIT_FOR_HARVEST?: boolean;
-    // VALIDATE_ONLY?: boolean;
-    // VERBOSE?: boolean;
-    // ORDER_PROPOSALS_FEED_IDENTIFIER?: string;
+    /**
+     * Whether to include extra logging around each feed request.
+     */
     REQUEST_LOGGING_ENABLED?: boolean;
   };
-  options?: {
-    pauseResume?: { waitIfPaused: () => Promise<void> };
-  };
+  /**
+   * @deprecated TODO this arg is only used by Broker Microservice, so that it
+   *   can share its context with the harvestRPDE function. This should be cleaned
+   *   up so that each project manages their own contexts separately.
+   *
+   * If provided, harvestRPDE will start with this FeedContext, rather than its
+   * usual behaviour of creating its own FeedContext.
+   */
+  overrideContext?: FeedContext;
 };
 
 export type HarvestRpdeResponse = {

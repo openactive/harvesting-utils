@@ -33,60 +33,9 @@ Indefinitely harvests an RPDE feed, following the ["expected consumer behaviour"
 
 **N.B.** This function will run indefinitely, and only return if a fatal error occurs. For this reason, you will generally **not** want to run `await harvestRPDE(..)`.
 
-#### Required Parameters
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| baseUrl | string | Feed URL to harvest |
-| feedContextIdentifier | string | Unique identifier for feed within the dataset eg ScheduledSession |
-| headers | () => Promise<Object.<string,string>> | Function that returns headers needed to make a request to the feed URL |
-| processPage | (rpdePage: any, feedIdentifier: string, isInitialHarvestComplete: () => boolean) => Promise<void> | Function that processes items in each page of the feed | 
-| onFeedEnd | () => Promise<void> | Function that is called when the [last page](https://openactive.io/realtime-paged-data-exchange/#last-page-definition) of the feed is reached. This function may be called multiple times if new items are added after the first time `harvestRPDE()` reaches the last page |
-| onError | () => Promise<void> | Function that is called if the harvest errors |
-| isOrdersFeed | boolean | Is the feed an Orders feed? |
+#### Parameters
 
-#### Optional Parameters
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| state | object | Existing state can be passed in and manipulated within harvestRPDE() |
-| state.context | FeedContext | Context about the feed. Default: new FeedContext(feedContextIdentifier,baseUrl, multibar) |
-| state.feedContextMap | Map<string, FeedContext> | Map containing FeedContexts about this and other feeds within the dataset. Default: new Map() |
-| state.startTime | Date | Start time of the harvest. Default: new Date()  |
-| loggingFns | object | Logging functions for different cases |
-| loggingFns.log | (message?: any, ...optionalParams: any[]) => void | Normal logging. Default: console.log  |
-| loggingFns.logError | (message?: any, ...optionalParams: any[]) => void | Error logging. Default: console.error |
-| loggingFns.logErrorDuringHarvest | (message?: any, ...optionalParams: any[]) => void | Error logging during the harvest Default: console.error |
-| config| object | Configuration options |
-| config.howLongToSleepAtFeedEnd | () => number | How long to wait, in milliseconds, before re-polling a feed after fetching the last page ([RPDE spec](https://openactive.io/realtime-paged-data-exchange/#polling-for-near-real-time-updates)). Default: `() => 500` |
-| config.WAIT_FOR_HARVEST | boolean | Whether to wait for harvest to complete and run onFeedEnd() function. Default: true |
-| config.VALIDATE_ONLY | boolean | TODO. Default: false |
-| config.VERBOSE | boolean | Verbose logging. Default: false |
-| config.ORDER_PROPOSALS_FEED_IDENTIFIER | string | TODO. Default: null |
-| config.REQUEST_LOGGING_ENABLED | boolean | Extra logging around the request. Default: false  |
-| options | object | Optional features |
-| options.multibar | import('cli-progress').MultiBar | If using cli-progress.Multibar, this can be supplied and harvesting updates will be provided to the multibar. Default: null |
-| options.pauseResume | {waitIfPaused: () => Promise<void>} | Function, if implemented, that can be used to pause harvesting. Default: null |
-
-### createFeedContext
-Function that creates a FeedContext object
-
-#### Required Parameters
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| feedContextIdentifier | string | Unique identifier for feed within the dataset eg ScheduledSession |
-| baseUrl | string | Feed URL to harvest |
-
-#### Optional Parameters
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| multibar | import('cli-progress').MultiBar | If using cli-progress.Multibar, this can be supplied and context values will be provided to the multibar. Default: null |
-
-### progressFromContext
-Function that returns harvesting progress values from a FeedContext object
-
-#### Required Parameters
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| context | FeedContext | FeedContext object to get progress values from |
+The parameters for this function are typed and documented in [HarvestRpde.d.ts](./src/models/HarvestRpde.d.ts).
 
 ### harvestRpdeLossless
 `harvestRpdeLossless` has the same function signature as `harvestRpde`. However it is capable of handling `modified` values that are too large for JavaScript numbers to handle natively ie > 2^53. This is handled by storing them as strings in memory. 
