@@ -1,6 +1,6 @@
 {
   "name": "@openactive/harvesting-utils",
-  "version": "0.2.290",
+  "version": "0.2.291",
   "description": "Utils library for harvesting RPDE feeds",
   "main": "index.js",
   "types": "built-types/index.d.ts",
